@@ -119,3 +119,53 @@ describe('customer-facing error copy', () => {
     expect(GENERIC_ERROR_MESSAGE).not.toMatch(/SMTP|database|postgres|stack/i);
   });
 });
+
+describe('health check honesty', () => {
+  beforeEach(async () => {
+    const { resetHealthCache } = await import('../src/services/health.js');
+    resetHealthCache();
+  });
+
+  it('never claims CONNECTED for a provider it has not actually contacted', async () => {
+    // The bug this guards: a completely blocked SMTP port reported CONNECTED
+    // on the dashboard, because the cheap check only looked for credentials.
+    const { healthReport, resetHealthCache } = await import('../src/services/health.js');
+    const { setEmailTransport } = await import('../src/services/email/index.js');
+    resetHealthCache();
+
+    setEmailTransport({
+      configured: true,
+      async send() { return { ok: false, error: 'blocked' }; },
+      async verify() { return { ok: false, error: 'connect ETIMEDOUT 142.250.0.1:587' }; },
+    });
+
+    const shallow = await healthReport({ deep: false });
+    expect(shallow.checks.email.status).not.toBe('CONNECTED');
+
+    const deep = await healthReport({ deep: true });
+    expect(deep.checks.email.status).toBe('ERROR');
+
+    // Once verified for real, the cheap check reports that truth rather than
+    // reverting to an optimistic guess.
+    const afterVerify = await healthReport({ deep: false });
+    expect(afterVerify.checks.email.status).toBe('ERROR');
+
+    setEmailTransport(undefined);
+  });
+
+  it('tells the operator how to fix a blocked SMTP port', async () => {
+    const { healthReport, resetHealthCache } = await import('../src/services/health.js');
+    const { setEmailTransport } = await import('../src/services/email/index.js');
+    resetHealthCache();
+
+    setEmailTransport({
+      configured: true,
+      async send() { return { ok: false }; },
+      async verify() { return { ok: false, error: 'connect ETIMEDOUT 142.250.0.1:587' }; },
+    });
+
+    const report = await healthReport({ deep: true });
+    expect(report.checks.email.detail).toContain('RESEND_API_KEY');
+    setEmailTransport(undefined);
+  });
+});

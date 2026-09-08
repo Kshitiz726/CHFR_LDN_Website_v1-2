@@ -13,6 +13,7 @@ import { whatsAppProvider } from './whatsapp/index.js';
 
 export type CheckStatus =
   | 'CONNECTED'
+  | 'CONFIGURED'
   | 'DISCONNECTED'
   | 'HEALTHY'
   | 'DEGRADED'
@@ -38,6 +39,33 @@ export interface HealthReport {
     whatsapp: Check;
     application: Check;
   };
+}
+
+
+/**
+ * Last real verification per subsystem.
+ *
+ * A shallow check must never claim CONNECTED just because credentials exist —
+ * that is how a completely blocked SMTP port showed as healthy. Instead it
+ * reports the last verified outcome, or CONFIGURED ("set up, not yet proven").
+ */
+const lastVerified = new Map<string, { check: Check; at: number }>();
+const VERIFIED_TTL_MS = 5 * 60_000;
+
+function remember(subsystem: string, check: Check): Check {
+  lastVerified.set(subsystem, { check, at: Date.now() });
+  return check;
+}
+
+function recall(subsystem: string): Check | undefined {
+  const entry = lastVerified.get(subsystem);
+  if (!entry || Date.now() - entry.at > VERIFIED_TTL_MS) return undefined;
+  return { ...entry.check, detail: `${entry.check.detail ?? ''} (last verified ${Math.round((Date.now() - entry.at) / 1000)}s ago)`.trim() };
+}
+
+/** Test seam so the cache cannot leak between test cases. */
+export function resetHealthCache(): void {
+  lastVerified.clear();
 }
 
 async function timeBoxed<T>(ms: number, run: () => Promise<T>, onTimeout: () => T): Promise<T> {
@@ -77,22 +105,32 @@ async function checkEmail(deep: boolean): Promise<Check> {
   }
   const provider = emailProviderName();
   if (provider === 'resend') {
-    if (!deep) return { status: 'CONNECTED', detail: 'Resend (HTTPS)' };
+    if (!deep) {
+      return recall('email') ?? { status: 'CONFIGURED', detail: 'Resend (HTTPS) — not yet verified' };
+    }
     const started = Date.now();
     return timeBoxed(
       15_000,
-      async (): Promise<Check> => {
-        const res = await emailTransport().verify();
-        return res.ok
-          ? { status: 'CONNECTED' as const, detail: 'Resend (HTTPS)', latencyMs: Date.now() - started }
-          : { status: 'ERROR' as const, detail: res.error };
-      },
+      async (): Promise<Check> =>
+        remember('email', await (async () => {
+          const res = await emailTransport().verify();
+          return res.ok
+            ? { status: 'CONNECTED' as const, detail: 'Resend (HTTPS)', latencyMs: Date.now() - started }
+            : { status: 'ERROR' as const, detail: res.error };
+        })()),
       (): Check => ({ status: 'DEGRADED', detail: 'Resend did not respond within 15s' }),
     );
   }
   // The SMTP handshake is only performed on request: the dashboard does it,
   // an uptime monitor hitting /api/health every minute should not.
-  if (!deep) return { status: 'CONNECTED', detail: `SMTP ${config.SMTP_HOST}:${config.SMTP_PORT}` };
+  if (!deep) {
+    return (
+      recall('email') ?? {
+        status: 'CONFIGURED',
+        detail: `SMTP ${config.SMTP_HOST}:${config.SMTP_PORT} — not yet verified`,
+      }
+    );
+  }
 
   const started = Date.now();
   // The budget must exceed the transport's own connectionTimeout (15s),
@@ -103,9 +141,9 @@ async function checkEmail(deep: boolean): Promise<Check> {
     async (): Promise<Check> => {
       const res = await emailTransport().verify();
       if (res.ok) {
-        return { status: 'CONNECTED' as const, detail: `SMTP ${config.SMTP_HOST}`, latencyMs: Date.now() - started };
+        return remember('email', { status: 'CONNECTED', detail: `SMTP ${config.SMTP_HOST}`, latencyMs: Date.now() - started });
       }
-      return { status: 'ERROR' as const, detail: describeSmtpError(res.error) };
+      return remember('email', { status: 'ERROR', detail: describeSmtpError(res.error) });
     },
     (): Check => ({
       status: 'DEGRADED',
@@ -122,15 +160,17 @@ async function checkSpreadsheet(deep: boolean): Promise<Check> {
   if (!provider.configured) {
     return { status: 'NOT_CONFIGURED', detail: 'No live spreadsheet — dashboard export is available' };
   }
-  if (!deep) return { status: 'CONNECTED', detail: provider.name };
+  if (!deep) {
+    return recall('spreadsheet') ?? { status: 'CONFIGURED', detail: `${provider.name} — not yet verified` };
+  }
 
   return timeBoxed(
     8000,
     async (): Promise<Check> => {
       const res = await provider.healthCheck();
-      return res.ok
-        ? { status: 'CONNECTED' as const, detail: provider.name }
-        : { status: 'ERROR' as const, detail: res.error };
+      return remember('spreadsheet', res.ok
+        ? { status: 'CONNECTED', detail: provider.name }
+        : { status: 'ERROR', detail: res.error });
     },
     (): Check => ({ status: 'DEGRADED', detail: 'Spreadsheet check timed out' }),
   );
@@ -168,7 +208,11 @@ function describeSmtpError(error: string | undefined): string {
     return `Credentials rejected by ${config.SMTP_HOST}. Gmail requires a 16-character App Password, not the account password. (${raw.slice(0, 120)})`;
   }
   if (e.includes('etimedout') || e.includes('timeout') || e.includes('econnrefused') || e.includes('ehostunreach')) {
-    return `Could not reach ${config.SMTP_HOST}:${config.SMTP_PORT}. The host may block outbound SMTP on this port. (${raw.slice(0, 120)})`;
+    return (
+      `Could not reach ${config.SMTP_HOST}:${config.SMTP_PORT}. Most managed hosts ` +
+      `(including Render's free and starter plans) block outbound SMTP. ` +
+      `Set RESEND_API_KEY to send over HTTPS instead — see the README. (${raw.slice(0, 120)})`
+    );
   }
   if (e.includes('enotfound') || e.includes('eai_again')) {
     return `Could not resolve ${config.SMTP_HOST}. Check SMTP_HOST for typos. (${raw.slice(0, 120)})`;

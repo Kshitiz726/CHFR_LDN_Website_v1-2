@@ -81,6 +81,11 @@ ${notices(p.flash)}
   <section class="panel">
     <h2>System health</h2>
     ${healthGrid(p.health)}
+    <p class="sub" style="margin-top:12px;font-size:11.5px">
+      "Configured" means the credentials are set but have not been tested.
+      <a href="/api/health?deep=1" target="_blank" style="color:var(--red)">Run the full check</a>
+      to actually contact each provider.
+    </p>
 
     <h2 style="margin-top:26px">Failed notifications</h2>
     ${
@@ -148,7 +153,9 @@ function healthGrid(h: HealthReport): string {
         ? 'ok'
         : c.status === 'NOT_CONFIGURED' || c.status === 'SKIPPED'
           ? 'off'
-          : c.status === 'DEGRADED' || c.status === 'QR_REQUIRED'
+          // CONFIGURED means set up but unproven — amber, not green, so a
+          // blocked port is never mistaken for a working integration.
+          : c.status === 'DEGRADED' || c.status === 'QR_REQUIRED' || c.status === 'CONFIGURED'
             ? 'warn'
             : 'err';
     return `<div>
