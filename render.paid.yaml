@@ -1,21 +1,18 @@
-# CHFR LDN — Render blueprint (FREE tier).
+# CHFR LDN — Render blueprint.
 #
-# Web service: Render free plan.
-# Database:    Neon (https://neon.tech) free tier — set DATABASE_URL by hand.
+# Creates the web service and a managed PostgreSQL database. Secrets marked
+# `sync: false` must be filled in once, by hand, in the Render dashboard —
+# they are never committed to git.
 #
-# Render's own free PostgreSQL is DELETED after 30 days, which would destroy
-# every booking, so it is deliberately not used here. Neon's free tier is
-# permanent. See render.paid.yaml for the production configuration
-# (~$13/month, no sleeping, Render-managed Postgres with backups).
-#
-# Secrets marked `sync: false` are filled in once, by hand, in the Render
-# dashboard — they are never committed to git.
+# OpenWA is intentionally NOT defined here. It needs a persistent disk for its
+# WhatsApp session and runs a headless browser, so it belongs on its own
+# service — see docker/openwa/README.md and the README's deployment section.
 
 services:
   - type: web
     name: chfr-ldn
     runtime: node
-    plan: free
+    plan: starter
     region: frankfurt
     branch: main
     # --include=dev is required: NODE_ENV=production (set below) otherwise makes
@@ -28,12 +25,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-
-      # Paste the Neon connection string here in the Render dashboard.
-      # It looks like:
-      #   postgresql://user:pass@ep-xxx.eu-central-1.aws.neon.tech/chfr?sslmode=require
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: chfr-postgres
+          property: connectionString
       - key: DATABASE_SSL
         value: 'true'
       - key: DB_DRIVER
@@ -41,15 +36,17 @@ services:
       - key: TRUST_PROXY
         value: 'true'
 
-      # Generated once by Render and then kept.
+      # Generated once by Render and then kept — never rotate casually, as
+      # rotating ADMIN_SESSION_SECRET is harmless but IP_HASH_SALT resets
+      # abuse-detection continuity.
       - key: ADMIN_SESSION_SECRET
         generateValue: true
       - key: IP_HASH_SALT
         generateValue: true
 
-      # Set to the Render URL first, then your live domain once DNS is pointed.
+      # Set this to your live domain once DNS is pointed at Render.
       - key: APP_URL
-        sync: false
+        value: https://www.chfrldn.com
       - key: ADMIN_EMAIL
         value: CHFRLONDON@GMAIL.COM
 
@@ -87,3 +84,10 @@ services:
         sync: false
       - key: TURNSTILE_SECRET_KEY
         sync: false
+
+databases:
+  - name: chfr-postgres
+    plan: basic-256mb
+    region: frankfurt
+    databaseName: chfr
+    user: chfr
