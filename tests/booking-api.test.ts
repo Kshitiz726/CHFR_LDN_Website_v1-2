@@ -123,6 +123,25 @@ describe('duplicate submission protection', () => {
     expect(rows[0].c).toBe(1);
   });
 
+  it('re-sends the acknowledgement when a customer resubmits, without duplicating the alert', async () => {
+    // Someone resubmitting the same journey has usually not seen the first
+    // acknowledgement. Re-sending it is helpful; a second internal alert is not.
+    ctx.email.clear();
+    await request(ctx.app).post('/api/bookings').send(sampleBooking());
+    expect(ctx.email.outbox).toHaveLength(2); // internal + customer
+
+    ctx.email.clear();
+    const second = await request(ctx.app).post('/api/bookings').send(sampleBooking());
+
+    expect(second.body.data.duplicate).toBe(true);
+    expect(ctx.email.outbox).toHaveLength(1);
+    expect(ctx.email.outbox[0]!.to).toBe('john@example.com');
+    expect(ctx.email.outbox[0]!.content.subject).toContain('Booking Request Received');
+
+    const { rows } = await db().query('SELECT count(*)::int AS c FROM bookings');
+    expect(rows[0].c).toBe(1);
+  });
+
   it('still creates a separate booking for a genuinely different journey', async () => {
     await request(ctx.app).post('/api/bookings').send(sampleBooking());
     await request(ctx.app).post('/api/bookings').send(sampleBooking({ pickup_time: '18:00' }));

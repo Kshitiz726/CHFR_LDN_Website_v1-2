@@ -78,10 +78,12 @@ export class ResendTransport implements EmailTransport {
    * app — does not have. Checking it there reported a perfectly good key as
    * rejected.
    *
-   * Instead it posts an intentionally invalid payload to the send endpoint.
-   * Resend authenticates before it validates, so the response separates the
-   * two cleanly: 401/403 means the key is bad, while a validation error means
-   * the key is fine. No recipient is supplied, so no email can be sent.
+   * Instead it posts an intentionally incomplete payload to the send endpoint.
+   * Resend authenticates and checks the sending domain before validating the
+   * rest, so the response separates the cases cleanly: 401 means a bad key,
+   * 403 with a domain message means the sender is not verified, and a plain
+   * validation error means everything needed to send is in order. No recipient
+   * is supplied, so this can never deliver an email.
    */
   async verify(): Promise<{ ok: boolean; error?: string }> {
     const controller = new AbortController();
@@ -93,7 +95,10 @@ export class ResendTransport implements EmailTransport {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}),
+        // `from` is included so an unverified sending domain is caught here
+        // rather than silently failing on every real booking. `to` is omitted,
+        // so this can never deliver a message.
+        body: JSON.stringify({ from: config.smtpFrom }),
         signal: controller.signal,
       });
 

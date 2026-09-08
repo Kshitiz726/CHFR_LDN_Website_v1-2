@@ -202,9 +202,11 @@ describe('Resend key verification', () => {
     await new ResendTransport('re_key').verify();
 
     const body = JSON.parse(seen[0]!.init.body);
+    // No recipient and no content: Resend has nothing it could deliver.
     expect(body.to).toBeUndefined();
     expect(body.subject).toBeUndefined();
-    expect(Object.keys(body)).toHaveLength(0);
+    expect(body.html).toBeUndefined();
+    expect(body.text).toBeUndefined();
   });
 
   it('still reports a genuinely bad key', async () => {
@@ -222,5 +224,35 @@ describe('Resend key verification', () => {
     expect(result.ok).toBe(false);
     expect(result.error).toContain('domain is not verified');
     expect(result.error).not.toContain('rejected the API key');
+  });
+});
+
+describe('verification covers the sending address, not just the key', () => {
+  const realFetch = globalThis.fetch;
+  afterAll(() => { globalThis.fetch = realFetch; });
+
+  it('sends the From address so an unverified domain is caught', async () => {
+    // The gap this closes: the key was valid, so health said CONNECTED, while
+    // every real booking failed because the sending domain was not verified.
+    const seen: any[] = [];
+    globalThis.fetch = (async (_url: any, init: any) => {
+      seen.push(JSON.parse(init.body));
+      return new Response(JSON.stringify({ message: 'Missing `to` field' }), { status: 422 });
+    }) as any;
+
+    await new ResendTransport('re_key').verify();
+
+    expect(seen[0].from).toBeTruthy();     // the sender is exercised
+    expect(seen[0].to).toBeUndefined();    // but nothing can be delivered
+  });
+
+  it('reports an unverified sending domain distinctly', async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ message: 'The chfrldn.com domain is not verified.' }), { status: 403 })) as any;
+
+    const result = await new ResendTransport('re_key').verify();
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('domain is not verified');
+    expect(result.error).toContain('onboarding@resend.dev');
   });
 });

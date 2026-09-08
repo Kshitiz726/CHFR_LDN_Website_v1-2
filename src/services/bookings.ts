@@ -8,7 +8,10 @@ import { nextBookingReference } from '../domain/reference.js';
 import { bookingDedupeHash } from '../utils/crypto.js';
 import * as repo from '../repositories/bookings.js';
 import type { ValidatedBooking } from '../validation/booking.js';
-import { dispatchNewBooking, sendCustomerUpdate, syncSpreadsheet, type DispatchResult } from './notifications.js';
+import {
+  dispatchNewBooking, sendCustomerUpdate, syncSpreadsheet, retryCustomerAck,
+  type DispatchResult,
+} from './notifications.js';
 
 /** How long an identical journey from the same customer counts as a re-submit. */
 const DUPLICATE_WINDOW_MINUTES = 15;
@@ -46,7 +49,7 @@ export async function createBooking(
     const existing = await repo.findByIdempotencyKey(ctx.idempotencyKey);
     if (existing) {
       logger.info({ reference: existing.booking_reference }, 'Idempotent replay — returning existing booking');
-      return { booking: existing, duplicate: true, dispatch: Promise.resolve({ outcomes: [] }) };
+      return { booking: existing, duplicate: true, dispatch: resendAcknowledgement(existing) };
     }
   }
 
@@ -59,7 +62,7 @@ export async function createBooking(
         .transaction((tx) => repo.recordIdempotencyKey(tx, ctx.idempotencyKey!, recent.id))
         .catch(() => undefined);
     }
-    return { booking: recent, duplicate: true, dispatch: Promise.resolve({ outcomes: [] }) };
+    return { booking: recent, duplicate: true, dispatch: resendAcknowledgement(recent) };
   }
 
   const booking = await db().transaction(async (tx) => {
@@ -95,6 +98,23 @@ export async function createBooking(
   });
 
   return { booking, duplicate: false, dispatch };
+}
+
+
+/**
+ * A customer who submits the same journey twice has usually not seen the first
+ * acknowledgement — it was slow, or it went to spam. Re-sending it is the
+ * helpful response. The internal alert and the spreadsheet are deliberately
+ * NOT repeated: staff should see one booking, not two.
+ */
+async function resendAcknowledgement(booking: BookingRow): Promise<DispatchResult> {
+  try {
+    const outcome = await retryCustomerAck(booking);
+    return { outcomes: [outcome] };
+  } catch (err) {
+    logger.error({ err, id: booking.id }, 'Could not re-send acknowledgement for a duplicate submission');
+    return { outcomes: [] };
+  }
 }
 
 export interface ActorContext {
