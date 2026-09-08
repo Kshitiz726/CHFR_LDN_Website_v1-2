@@ -38,6 +38,8 @@ const schema = z.object({
   DATABASE_URL: optStr,
   DATABASE_SSL: bool(false),
   DB_DRIVER: z.enum(['pg', 'pglite']).default('pg'),
+  // Generous by default: serverless Postgres needs time to wake from suspend.
+  DB_CONNECT_TIMEOUT_MS: int(30_000),
 
   // Security
   ADMIN_SESSION_SECRET: optStr,
@@ -46,6 +48,10 @@ const schema = z.object({
 
   // Email
   ADMIN_EMAIL: z.string().default('CHFRLONDON@GMAIL.COM'),
+  // 'auto' prefers Resend when a key is present, then SMTP. Many managed hosts
+  // block outbound SMTP ports, so HTTPS delivery is the safer default.
+  EMAIL_PROVIDER: z.enum(['auto', 'smtp', 'resend']).default('auto'),
+  RESEND_API_KEY: optStr,
   SMTP_HOST: optStr,
   SMTP_PORT: int(587),
   SMTP_SECURE: bool(false),

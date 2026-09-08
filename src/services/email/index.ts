@@ -2,6 +2,9 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import type { EmailContent } from './templates/index.js';
+// Safe despite resend.ts importing back from here: that import is type-only
+// and erased at compile time, so there is no runtime cycle.
+import { ResendTransport } from './resend.js';
 
 /**
  * SMTP transport. Deliberately thin: templates produce the content, this module
@@ -97,9 +100,27 @@ export class MemoryTransport implements EmailTransport {
 
 let transport: EmailTransport | undefined;
 
+/** Which transport the current configuration selects, without building it. */
+export function emailProviderName(): 'resend' | 'smtp' | 'none' {
+  if (!config.EMAIL_ENABLED) return 'none';
+  if (config.EMAIL_PROVIDER === 'resend') return config.RESEND_API_KEY ? 'resend' : 'none';
+  if (config.EMAIL_PROVIDER === 'smtp') return config.SMTP_HOST ? 'smtp' : 'none';
+  // auto: HTTPS first, because SMTP ports are blocked on many hosts.
+  if (config.RESEND_API_KEY) return 'resend';
+  if (config.SMTP_HOST) return 'smtp';
+  return 'none';
+}
+
 export function emailTransport(): EmailTransport {
   if (!transport) {
-    transport = config.EMAIL_ENABLED && config.SMTP_HOST ? new SmtpTransport() : new MemoryTransport();
+    const provider = emailProviderName();
+    if (provider === 'resend') {
+      transport = new ResendTransport();
+    } else if (provider === 'smtp') {
+      transport = new SmtpTransport();
+    } else {
+      transport = new MemoryTransport();
+    }
   }
   return transport;
 }
@@ -110,5 +131,5 @@ export function setEmailTransport(next: EmailTransport | undefined): void {
 }
 
 export function isEmailConfigured(): boolean {
-  return Boolean(config.EMAIL_ENABLED && config.SMTP_HOST);
+  return emailProviderName() !== 'none';
 }

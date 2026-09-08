@@ -168,7 +168,8 @@
         } else {
           showAlert(
             error.message ||
-              'Something went wrong sending your request. Please try again, or contact CHFR directly.'
+              'Something went wrong sending your request. Please try again — or message us on ' +
+              'Instagram @chfrldn and we will arrange your journey from there.'
           );
         }
         setBusy(false);
@@ -176,7 +177,8 @@
       .catch(function () {
         /* Network or parsing failure — the customer sees plain language only. */
         showAlert(
-          'We could not reach CHFR just now. Please check your connection and try again, or contact us directly.'
+          'We could not reach CHFR just now. Please check your connection and try again — ' +
+          'or message us on Instagram @chfrldn and we will arrange your journey from there.'
         );
         setBusy(false);
       });

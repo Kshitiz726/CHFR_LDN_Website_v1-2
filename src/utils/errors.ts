@@ -47,5 +47,10 @@ export class RateLimitError extends AppError {
 }
 
 /** Generic customer-facing copy. Technical detail stays in the logs. */
+/**
+ * Shown when the booking itself could not be saved. It always offers a way
+ * through, so a technical fault never costs CHFR the enquiry.
+ */
 export const GENERIC_ERROR_MESSAGE =
-  'Something went wrong sending your request. Please try again, or contact CHFR directly.';
+  'Something went wrong sending your request. Please try again — or message CHFR directly ' +
+  'on Instagram @chfrldn and we will arrange your journey from there.';

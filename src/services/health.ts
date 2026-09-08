@@ -1,6 +1,6 @@
 import { config } from '../config/env.js';
 import { db } from '../db/index.js';
-import { emailTransport, isEmailConfigured } from './email/index.js';
+import { emailTransport, isEmailConfigured, emailProviderName } from './email/index.js';
 import { spreadsheetProvider } from './spreadsheet/index.js';
 import { whatsAppProvider } from './whatsapp/index.js';
 
@@ -70,7 +70,25 @@ async function checkDatabase(): Promise<Check> {
 
 async function checkEmail(deep: boolean): Promise<Check> {
   if (!isEmailConfigured()) {
-    return { status: 'NOT_CONFIGURED', detail: 'SMTP_HOST is not set — emails are captured, not delivered' };
+    return {
+      status: 'NOT_CONFIGURED',
+      detail: 'No RESEND_API_KEY and no SMTP_HOST — emails are captured in memory, not delivered',
+    };
+  }
+  const provider = emailProviderName();
+  if (provider === 'resend') {
+    if (!deep) return { status: 'CONNECTED', detail: 'Resend (HTTPS)' };
+    const started = Date.now();
+    return timeBoxed(
+      15_000,
+      async (): Promise<Check> => {
+        const res = await emailTransport().verify();
+        return res.ok
+          ? { status: 'CONNECTED' as const, detail: 'Resend (HTTPS)', latencyMs: Date.now() - started }
+          : { status: 'ERROR' as const, detail: res.error };
+      },
+      (): Check => ({ status: 'DEGRADED', detail: 'Resend did not respond within 15s' }),
+    );
   }
   // The SMTP handshake is only performed on request: the dashboard does it,
   // an uptime monitor hitting /api/health every minute should not.

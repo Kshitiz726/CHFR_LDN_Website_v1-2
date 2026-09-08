@@ -32,12 +32,45 @@ pg.types.setTypeParser(1082, (v) => v); // date
 pg.types.setTypeParser(1083, (v) => v); // time
 pg.types.setTypeParser(1114, (v) => v); // timestamp without time zone
 
+
+/**
+ * Errors that mean "the database was asleep or briefly unreachable", as opposed
+ * to "your SQL is wrong". Only these are worth retrying.
+ */
+function isTransientConnectionError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  const code = e?.code ?? '';
+  const message = (e?.message ?? '').toLowerCase();
+  return (
+    ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN', '57P01', '08006', '08003'].includes(code) ||
+    message.includes('timeout expired') ||
+    message.includes('connection terminated') ||
+    message.includes('connection closed') ||
+    message.includes('terminating connection')
+  );
+}
+
+/**
+ * One retry, after a short pause. A suspended Neon instance answers the second
+ * attempt; anything still failing is a real outage and is allowed to surface.
+ */
+async function withColdStartRetry<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (err) {
+    if (!isTransientConnectionError(err)) throw err;
+    logger.warn({ err }, 'Database connection failed — retrying once (likely a sleeping serverless instance)');
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return run();
+  }
+}
+
 class PgDatabase implements Database {
   readonly driver = 'pg' as const;
   constructor(private readonly pool: pg.Pool) {}
 
   async query<T = any>(sql: string, params: readonly unknown[] = []): Promise<QueryResult<T>> {
-    const res = await this.pool.query(sql, params as unknown[]);
+    const res = await withColdStartRetry(() => this.pool.query(sql, params as unknown[]));
     return { rows: res.rows as T[], rowCount: res.rowCount ?? res.rows.length };
   }
 
@@ -46,7 +79,7 @@ class PgDatabase implements Database {
   }
 
   async transaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
-    const client = await this.pool.connect();
+    const client = await withColdStartRetry(() => this.pool.connect());
     try {
       await client.query('BEGIN');
       const tx: Queryable = {
@@ -134,7 +167,11 @@ export async function initDatabase(): Promise<Database> {
     ssl: config.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
     max: 10,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+    // Serverless Postgres (Neon, Supabase) suspends when idle and needs a few
+    // seconds to wake. Ten seconds was not enough: the first booking after a
+    // quiet spell failed, and the customer saw a generic error for what was
+    // really just a cold database.
+    connectionTimeoutMillis: config.DB_CONNECT_TIMEOUT_MS,
   });
   pool.on('error', (err) => logger.error({ err }, 'Idle postgres client error'));
   instance = new PgDatabase(pool);

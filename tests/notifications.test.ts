@@ -142,9 +142,12 @@ describe('notification fan-out', () => {
 
     __setDatabaseForTests(real);
     expect(res.status).toBe(500);
-    expect(res.body.error.message).toBe(
-      'Something went wrong sending your request. Please try again, or contact CHFR directly.',
-    );
+    // Assert the properties that matter rather than the exact wording, so
+    // copy changes do not break the test but a leak still would.
+    const shown = res.body.error.message as string;
+    expect(shown).toContain('try again');
+    expect(shown).toContain('@chfrldn'); // always offers a way through
+    expect(shown).not.toMatch(/postgres|password|connection|SQL|stack/i);
     expect(JSON.stringify(res.body)).not.toContain('password authentication');
   });
 });
@@ -167,11 +170,26 @@ describe('GET /api/health', () => {
     expect(res.body.checks).toHaveProperty('whatsapp');
   });
 
-  it('does not leak credentials', async () => {
-    const res = await request(ctx.app).get('/api/health');
-    const body = JSON.stringify(res.body).toLowerCase();
-    expect(body).not.toContain('password');
-    expect(body).not.toContain('api_key');
-    expect(body).not.toContain('apikey');
+  it('does not leak credential values', async () => {
+    // Configure real-looking secrets, then assert none of their VALUES appear.
+    // Matching on variable names instead would flag the harmless
+    // "No RESEND_API_KEY is set" diagnostic, which contains no secret.
+    const secrets = {
+      SMTP_PASSWORD: 'abcd-efgh-ijkl-mnop-secret',
+      RESEND_API_KEY: 're_live_TOPSECRETVALUE123',
+      OPENWA_API_KEY: 'openwa-topsecret-key-999',
+      GOOGLE_SERVICE_ACCOUNT_JSON: '{"private_key":"-----BEGIN PRIVATE KEY-----AAA"}',
+    };
+    const previous = { ...process.env };
+    Object.assign(process.env, secrets);
+
+    const res = await request(ctx.app).get('/api/health?deep=1');
+    const body = JSON.stringify(res.body);
+    for (const [name, value] of Object.entries(secrets)) {
+      expect(body, `${name} value leaked`).not.toContain(value);
+    }
+    expect(body).not.toContain('BEGIN PRIVATE KEY');
+
+    process.env = previous;
   });
 });
