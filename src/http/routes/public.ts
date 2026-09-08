@@ -130,7 +130,12 @@ publicRouter.post(
  */
 publicRouter.get('/health', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const report = await healthReport({ deep: req.query.deep === '1' || req.query.deep === 'true' });
+    const report = await healthReport({
+      deep: req.query.deep === '1' || req.query.deep === 'true',
+      // Failure details are only shown to signed-in staff; the public endpoint
+      // stays a plain up/down signal.
+      includeDiagnostics: Boolean(req.session),
+    });
     res.status(report.ok ? 200 : 503).json(report);
   } catch (err) {
     next(err);

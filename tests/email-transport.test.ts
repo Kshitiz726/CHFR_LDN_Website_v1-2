@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { setupTestApp, teardownTestApp } from './helpers.js';
+import { setupTestApp, teardownTestApp, resetData } from './helpers.js';
 import { ResendTransport } from '../src/services/email/resend.js';
 import type { EmailContent } from '../src/services/email/templates/index.js';
 
@@ -254,5 +254,59 @@ describe('verification covers the sending address, not just the key', () => {
     expect(result.ok).toBe(false);
     expect(result.error).toContain('domain is not verified');
     expect(result.error).toContain('onboarding@resend.dev');
+  });
+});
+
+describe('health diagnostics', () => {
+  beforeAll(async () => { await setupTestApp(); });
+  afterAll(teardownTestApp);
+  beforeEach(async () => {
+    await resetData();
+    const { resetHealthCache } = await import('../src/services/health.js');
+    resetHealthCache();
+  });
+
+  it('names the sending address, the most common misconfiguration', async () => {
+    const { healthReport, resetHealthCache } = await import('../src/services/health.js');
+    const { setEmailTransport } = await import('../src/services/email/index.js');
+    resetHealthCache();
+    setEmailTransport({
+      configured: true,
+      async send() { return { ok: true }; },
+      async verify() { return { ok: true }; },
+    });
+
+    const report = await healthReport({ deep: true });
+    // A valid key proves nothing if mail is sent from an unverified address,
+    // so the address itself has to be visible.
+    expect(report.checks.email.detail).toMatch(/from .+@/);
+    setEmailTransport(undefined);
+  });
+
+  it('reports real delivery failures to staff, with recipients stripped', async () => {
+    const { healthReport } = await import('../src/services/health.js');
+    const { logNotification } = await import('../src/repositories/notifications.js');
+
+    await logNotification({
+      bookingId: null,
+      channel: 'EMAIL',
+      kind: 'CUSTOMER_ACK',
+      status: 'FAILED',
+      recipient: 'customer@example.com',
+      errorMessage: 'You can only send testing emails to your own address (owner@example.com)',
+    });
+
+    const withDiagnostics = await healthReport({ deep: false, includeDiagnostics: true });
+    expect(withDiagnostics.recentFailures?.length).toBeGreaterThan(0);
+    const failure = withDiagnostics.recentFailures![0]!;
+    expect(failure.channel).toBe('EMAIL');
+    expect(failure.error).toContain('own address');
+    // Customer addresses must never appear in a health payload.
+    expect(failure.error).not.toContain('owner@example.com');
+    expect(failure.error).toContain('<address>');
+
+    // The public endpoint stays a plain up/down signal.
+    const publicReport = await healthReport({ deep: false });
+    expect(publicReport.recentFailures).toBeUndefined();
   });
 });

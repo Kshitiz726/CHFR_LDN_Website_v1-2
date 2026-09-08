@@ -264,7 +264,7 @@ adminApiRouter.get('/notifications/failed', async (_req, res, next) => {
 
 adminApiRouter.get('/health', async (_req, res, next) => {
   try {
-    res.json({ ok: true, data: await healthReport({ deep: true }) });
+    res.json({ ok: true, data: await healthReport({ deep: true, includeDiagnostics: true }) });
   } catch (err) {
     next(err);
   }

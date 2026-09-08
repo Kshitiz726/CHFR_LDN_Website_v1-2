@@ -27,11 +27,21 @@ export interface Check {
   latencyMs?: number;
 }
 
+export interface NotificationFailure {
+  channel: string;
+  kind: string;
+  error: string;
+  at: string;
+  attempts: number;
+}
+
 export interface HealthReport {
   ok: boolean;
   timestamp: string;
   version: string;
   environment: string;
+  /** Recent real delivery failures. Only populated for authenticated callers. */
+  recentFailures?: NotificationFailure[];
   checks: {
     database: Check;
     email: Check;
@@ -106,7 +116,9 @@ async function checkEmail(deep: boolean): Promise<Check> {
   const provider = emailProviderName();
   if (provider === 'resend') {
     if (!deep) {
-      return recall('email') ?? { status: 'CONFIGURED', detail: 'Resend (HTTPS) — not yet verified' };
+      return (
+        recall('email') ?? { status: 'CONFIGURED', detail: `Resend (HTTPS), from ${config.smtpFrom} — not yet verified` }
+      );
     }
     const started = Date.now();
     return timeBoxed(
@@ -115,7 +127,11 @@ async function checkEmail(deep: boolean): Promise<Check> {
         remember('email', await (async () => {
           const res = await emailTransport().verify();
           return res.ok
-            ? { status: 'CONNECTED' as const, detail: 'Resend (HTTPS)', latencyMs: Date.now() - started }
+            ? {
+                status: 'CONNECTED' as const,
+                detail: `Resend (HTTPS), from ${config.smtpFrom}`,
+                latencyMs: Date.now() - started,
+              }
             : { status: 'ERROR' as const, detail: res.error };
         })()),
       (): Check => ({ status: 'DEGRADED', detail: 'Resend did not respond within 15s' }),
@@ -127,7 +143,7 @@ async function checkEmail(deep: boolean): Promise<Check> {
     return (
       recall('email') ?? {
         status: 'CONFIGURED',
-        detail: `SMTP ${config.SMTP_HOST}:${config.SMTP_PORT} — not yet verified`,
+        detail: `SMTP ${config.SMTP_HOST}:${config.SMTP_PORT}, from ${config.smtpFrom} — not yet verified`,
       }
     );
   }
@@ -141,7 +157,11 @@ async function checkEmail(deep: boolean): Promise<Check> {
     async (): Promise<Check> => {
       const res = await emailTransport().verify();
       if (res.ok) {
-        return remember('email', { status: 'CONNECTED', detail: `SMTP ${config.SMTP_HOST}`, latencyMs: Date.now() - started });
+        return remember('email', {
+          status: 'CONNECTED',
+          detail: `SMTP ${config.SMTP_HOST}, from ${config.smtpFrom}`,
+          latencyMs: Date.now() - started,
+        });
       }
       return remember('email', { status: 'ERROR', detail: describeSmtpError(res.error) });
     },
@@ -223,7 +243,42 @@ function describeSmtpError(error: string | undefined): string {
   return raw.slice(0, 200);
 }
 
-export async function healthReport(options: { deep?: boolean } = {}): Promise<HealthReport> {
+/**
+ * The last few genuine delivery failures, with recipients stripped.
+ *
+ * Verifying a provider only proves the credentials work. This proves whether
+ * messages are actually getting out, which is the question that matters.
+ */
+async function recentFailures(): Promise<NotificationFailure[]> {
+  try {
+    const { rows } = await db().query<{
+      channel: string; kind: string; error_message: string | null;
+      created_at: string; attempts: number;
+    }>(
+      `SELECT channel, kind, error_message, created_at, attempts
+         FROM notification_logs
+        WHERE status = 'FAILED'
+        ORDER BY created_at DESC
+        LIMIT 5`,
+    );
+    return rows.map((r) => ({
+      channel: r.channel,
+      kind: r.kind,
+      // Strip any address the provider echoed back into its error text.
+      error: (r.error_message ?? 'Unknown error')
+        .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, '<address>')
+        .slice(0, 300),
+      at: r.created_at,
+      attempts: r.attempts,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function healthReport(
+  options: { deep?: boolean; includeDiagnostics?: boolean } = {},
+): Promise<HealthReport> {
   const deep = options.deep ?? false;
 
   const [database, email, spreadsheet, whatsapp] = await Promise.all([
@@ -242,6 +297,7 @@ export async function healthReport(options: { deep?: boolean } = {}): Promise<He
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version ?? '2.0.0',
     environment: config.NODE_ENV,
+    ...(options.includeDiagnostics ? { recentFailures: await recentFailures() } : {}),
     checks: {
       database,
       email,
