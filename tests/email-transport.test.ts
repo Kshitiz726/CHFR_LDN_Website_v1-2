@@ -169,3 +169,58 @@ describe('health check honesty', () => {
     setEmailTransport(undefined);
   });
 });
+
+describe('Resend key verification', () => {
+  const realFetch = globalThis.fetch;
+  afterAll(() => { globalThis.fetch = realFetch; });
+
+  /** Captures what verify() actually calls, then replies with `reply`. */
+  const stub = (reply: Response) => {
+    const seen: Array<{ url: string; init: any }> = [];
+    globalThis.fetch = (async (url: any, init: any) => {
+      seen.push({ url: String(url), init });
+      return reply;
+    }) as any;
+    return seen;
+  };
+
+  it('accepts a sending-only key, which cannot read /domains', async () => {
+    // The regression: verify() used to call /domains, which a least-privilege
+    // "Sending access" key is forbidden from reading — so a working key was
+    // reported as rejected.
+    const seen = stub(new Response(JSON.stringify({ message: 'Missing `to` field' }), { status: 422 }));
+
+    const result = await new ResendTransport('re_sending_only').verify();
+
+    expect(result.ok).toBe(true);
+    expect(seen[0]!.url).not.toContain('/domains');
+    expect(seen[0]!.url).toBe('https://api.resend.com/emails');
+  });
+
+  it('sends no recipient, so verification cannot deliver an email', async () => {
+    const seen = stub(new Response('{}', { status: 422 }));
+    await new ResendTransport('re_key').verify();
+
+    const body = JSON.parse(seen[0]!.init.body);
+    expect(body.to).toBeUndefined();
+    expect(body.subject).toBeUndefined();
+    expect(Object.keys(body)).toHaveLength(0);
+  });
+
+  it('still reports a genuinely bad key', async () => {
+    stub(new Response(JSON.stringify({ message: 'API key is invalid' }), { status: 401 }));
+    const result = await new ResendTransport('nonsense').verify();
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('RESEND_API_KEY');
+  });
+
+  it('distinguishes an unverified domain from a bad key', async () => {
+    stub(new Response(JSON.stringify({ message: 'The chfrldn.com domain is not verified' }), { status: 403 }));
+    const result = await new ResendTransport('re_good_key').verify();
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('domain is not verified');
+    expect(result.error).not.toContain('rejected the API key');
+  });
+});

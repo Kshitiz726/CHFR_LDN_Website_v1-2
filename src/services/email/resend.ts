@@ -71,26 +71,64 @@ export class ResendTransport implements EmailTransport {
   }
 
   /**
-   * Resend has no dedicated ping, so the domains endpoint doubles as one: it
-   * proves the key is valid and the API is reachable without sending anything.
+   * Proves the API key works, without sending anything.
+   *
+   * Deliberately does NOT use /domains: that needs domain-read permission,
+   * which a "Sending access" key — the correct, least-privilege key for this
+   * app — does not have. Checking it there reported a perfectly good key as
+   * rejected.
+   *
+   * Instead it posts an intentionally invalid payload to the send endpoint.
+   * Resend authenticates before it validates, so the response separates the
+   * two cleanly: 401/403 means the key is bad, while a validation error means
+   * the key is fine. No recipient is supplied, so no email can be sent.
    */
   async verify(): Promise<{ ok: boolean; error?: string }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10_000);
     try {
-      const res = await fetch('https://api.resend.com/domains', {
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+      const res = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
         signal: controller.signal,
       });
+
       if (res.status === 401 || res.status === 403) {
-        return { ok: false, error: 'Resend rejected the API key. Check RESEND_API_KEY.' };
+        const text = await res.text().catch(() => '');
+        // A 403 can also mean "domain not verified" rather than a bad key.
+        if (/not verified|domain/i.test(text)) {
+          return {
+            ok: false,
+            error:
+              'API key works, but the sending domain is not verified. Verify it at ' +
+              'https://resend.com/domains, or set SMTP_FROM to onboarding@resend.dev for testing.',
+          };
+        }
+        return {
+          ok: false,
+          error:
+            'Resend rejected the API key. Check RESEND_API_KEY — it should start with "re_" ' +
+            'and have Sending access.',
+        };
       }
-      if (!res.ok) return { ok: false, error: `Resend returned ${res.status}` };
-      return { ok: true };
+
+      // 4xx validation (no recipient, no subject) means authentication passed.
+      if (res.status === 422 || res.status === 400 || res.ok) return { ok: true };
+
+      return { ok: false, error: `Resend returned an unexpected ${res.status}` };
     } catch (err) {
       return {
         ok: false,
-        error: err instanceof Error ? err.message : String(err),
+        error:
+          err instanceof Error && err.name === 'AbortError'
+            ? 'Resend did not respond within 10s'
+            : err instanceof Error
+              ? err.message
+              : String(err),
       };
     } finally {
       clearTimeout(timer);
