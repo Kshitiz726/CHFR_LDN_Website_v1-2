@@ -77,15 +77,25 @@ async function checkEmail(deep: boolean): Promise<Check> {
   if (!deep) return { status: 'CONNECTED', detail: `SMTP ${config.SMTP_HOST}:${config.SMTP_PORT}` };
 
   const started = Date.now();
+  // The budget must exceed the transport's own connectionTimeout (15s),
+  // otherwise a slow-but-working handshake is reported as degraded and a
+  // genuinely working mail setup looks broken.
   return timeBoxed(
-    8000,
+    20_000,
     async (): Promise<Check> => {
       const res = await emailTransport().verify();
-      return res.ok
-        ? { status: 'CONNECTED' as const, detail: `SMTP ${config.SMTP_HOST}`, latencyMs: Date.now() - started }
-        : { status: 'ERROR' as const, detail: res.error };
+      if (res.ok) {
+        return { status: 'CONNECTED' as const, detail: `SMTP ${config.SMTP_HOST}`, latencyMs: Date.now() - started };
+      }
+      return { status: 'ERROR' as const, detail: describeSmtpError(res.error) };
     },
-    (): Check => ({ status: 'DEGRADED', detail: 'SMTP verification timed out' }),
+    (): Check => ({
+      status: 'DEGRADED',
+      detail:
+        `No reply from ${config.SMTP_HOST}:${config.SMTP_PORT} within 20s. ` +
+        'Sending may still work — send a test booking to confirm. If that also fails, ' +
+        'the host is likely blocking outbound SMTP on this port.',
+    }),
   );
 }
 
@@ -125,6 +135,30 @@ async function checkWhatsApp(): Promise<Check> {
     },
     (): Check => ({ status: 'DISCONNECTED', detail: 'OpenWA did not respond in time' }),
   );
+}
+
+/**
+ * Turns an SMTP failure into something an operator can act on. The distinction
+ * that matters: credentials rejected (fix the App Password) versus never
+ * reached the server (network, or the host blocks the port).
+ */
+function describeSmtpError(error: string | undefined): string {
+  const raw = error ?? 'Unknown SMTP error';
+  const e = raw.toLowerCase();
+
+  if (e.includes('invalid login') || e.includes('username and password not accepted') || e.includes('535')) {
+    return `Credentials rejected by ${config.SMTP_HOST}. Gmail requires a 16-character App Password, not the account password. (${raw.slice(0, 120)})`;
+  }
+  if (e.includes('etimedout') || e.includes('timeout') || e.includes('econnrefused') || e.includes('ehostunreach')) {
+    return `Could not reach ${config.SMTP_HOST}:${config.SMTP_PORT}. The host may block outbound SMTP on this port. (${raw.slice(0, 120)})`;
+  }
+  if (e.includes('enotfound') || e.includes('eai_again')) {
+    return `Could not resolve ${config.SMTP_HOST}. Check SMTP_HOST for typos. (${raw.slice(0, 120)})`;
+  }
+  if (e.includes('self signed') || e.includes('certificate')) {
+    return `TLS problem talking to ${config.SMTP_HOST}. (${raw.slice(0, 120)})`;
+  }
+  return raw.slice(0, 200);
 }
 
 export async function healthReport(options: { deep?: boolean } = {}): Promise<HealthReport> {

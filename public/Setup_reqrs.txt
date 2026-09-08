@@ -1,0 +1,8 @@
+app password : qlpl emeh qsbi hsdx
+DATABASE_URL	the Neon string from step C
+APP_URL	your Render URL, e.g. https://chfr-ldn.onrender.com
+SMTP_HOST	smtp.gmail.com
+SMTP_PORT	587
+SMTP_USER	CHFRLONDON@GMAIL.COM
+SMTP_PASSWORD	the 16-char App Password
+SMTP_FROM	CHFR LDN <CHFRLONDON@GMAIL.COM>
