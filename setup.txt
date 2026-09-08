@@ -1,0 +1,1926 @@
+I need you to turn my existing CHFR LDN website into a production-ready chauffeur booking and lead-management system.
+
+IMPORTANT:
+DO NOT redesign the website from scratch.
+DO NOT replace the existing visual identity.
+DO NOT unnecessarily change the existing frontend.
+First inspect the entire existing repository/codebase and understand the current stack, routing, components, styling, form implementation, deployment configuration, and environment variables.
+
+Website:
+https://www.chfrldn.com/
+
+Business:
+CHFR LDN.
+Luxury chauffeur service in London and nationwide.
+
+The existing website currently has a booking section with a form containing approximately:
+
+- Full name
+- Mobile
+- Email
+- Pickup location
+- Destination
+- Date
+- Pickup time
+- Passengers
+- Luggage
+- Journey type
+- Preferred vehicle
+- Flight number
+- Special requests
+
+The website currently tells customers that a CHFR concierge will confirm availability and pricing.
+
+I want to turn this into a real booking/lead management workflow.
+
+==================================================
+1. MAIN OBJECTIVE
+==================================================
+
+When a customer submits the booking form:
+
+1. Validate the submission.
+2. Create a unique booking/lead ID.
+3. Save the booking into a proper database.
+4. Send a professionally formatted email to:
+
+CHFRLONDON@GMAIL.COM
+
+5. Send an acknowledgement email to the customer.
+6. Record the booking in an Excel-compatible spreadsheet/database view.
+7. Allow CHFR staff to update the booking status and details.
+8. Keep a complete audit/history of changes.
+9. Optionally send the booking to WhatsApp using a self-hosted OpenWA API.
+10. Never expose private API keys or database credentials in frontend code.
+11. Prevent duplicate submissions.
+12. Add spam/bot protection.
+13. Make the system production-ready.
+
+==================================================
+2. FIRST: INSPECT THE EXISTING PROJECT
+==================================================
+
+Before changing anything:
+
+- Inspect package.json
+- Inspect the complete source tree
+- Identify whether this is Next.js, React, Vite, plain HTML/JS, etc.
+- Identify the existing backend/API architecture
+- Identify where the booking form is implemented
+- Identify current deployment configuration
+- Identify whether environment variables are already being used
+- Identify existing email functionality
+- Identify whether a database already exists
+- Identify existing dependencies
+- Identify the exact fields currently submitted by the form
+
+Do not assume the framework.
+
+Work with the existing architecture wherever reasonably possible.
+
+After inspection, explain briefly what architecture you found, then implement the solution.
+
+==================================================
+3. BOOKING DATA MODEL
+==================================================
+
+Create a robust booking/lead model.
+
+Each booking should contain:
+
+IDENTIFICATION
+
+- id
+- booking_reference
+- created_at
+- updated_at
+
+CUSTOMER
+
+- full_name
+- mobile
+- email
+
+JOURNEY
+
+- pickup_location
+- destination
+- journey_date
+- pickup_time
+- passengers
+- luggage
+- journey_type
+- preferred_vehicle
+- flight_number
+- special_requests
+
+BUSINESS / CRM
+
+- status
+- priority
+- assigned_to
+- quoted_price
+- confirmed_price
+- currency
+- payment_status
+- driver_name
+- vehicle_registration
+- internal_notes
+- customer_notes
+
+COMMUNICATION
+
+- customer_email_sent
+- internal_email_sent
+- whatsapp_sent
+- whatsapp_message_id
+- last_contacted_at
+
+TRACKING
+
+- source
+- user_agent
+- ip_hash
+- created_at
+- updated_at
+
+Do not store unnecessary sensitive information.
+
+Do not store card details.
+
+The website must continue to explicitly state that card details are never requested online.
+
+==================================================
+4. BOOKING REFERENCE
+==================================================
+
+Generate a human-friendly unique booking reference.
+
+Example:
+
+CHFR-20260908-0001
+
+or another equally professional format.
+
+The reference must be unique.
+
+Use the booking reference everywhere:
+
+- Email subject
+- Internal email
+- Customer acknowledgement
+- Admin dashboard
+- Spreadsheet
+- WhatsApp notification
+- Audit history
+
+==================================================
+5. BOOKING STATUS SYSTEM
+==================================================
+
+Implement a proper CRM-style status workflow.
+
+Statuses:
+
+NEW LEAD
+CONTACTED
+QUOTED
+AWAITING CUSTOMER
+CONFIRMED
+GOING
+COMPLETED
+CANCELLED
+NO SHOW
+
+Default status:
+
+NEW LEAD
+
+Allow staff to change status.
+
+When status changes:
+
+- update database
+- update spreadsheet
+- create audit log
+- record who changed it
+- record previous status
+- record new status
+- record timestamp
+
+Example:
+
+NEW LEAD → CONTACTED
+CONTACTED → QUOTED
+QUOTED → CONFIRMED
+CONFIRMED → GOING
+GOING → COMPLETED
+
+Do not hard-code the UI so that future statuses cannot be added.
+
+==================================================
+6. ADMIN / STAFF DASHBOARD
+==================================================
+
+Create a secure admin dashboard.
+
+Route example:
+
+/admin/bookings
+
+Authentication MUST be required.
+
+Never expose the dashboard publicly.
+
+Implement:
+
+- Login
+- Logout
+- Protected routes
+- Secure password/session handling
+- Rate limiting
+- CSRF protection where appropriate
+- Secure cookies
+- No credentials in source code
+
+Dashboard should display bookings in a table.
+
+Columns:
+
+Booking Ref
+Created
+Customer
+Mobile
+Email
+Pickup
+Destination
+Journey Date
+Pickup Time
+Journey Type
+Vehicle
+Passengers
+Status
+Quoted Price
+Payment Status
+Assigned To
+Last Updated
+Actions
+
+Add:
+
+- Search
+- Status filter
+- Date filter
+- Journey type filter
+- Vehicle filter
+- Sort by newest
+- Sort by journey date
+- Search by booking reference
+- Search by customer name
+- Search by phone number
+
+==================================================
+7. BOOKING DETAIL PAGE
+==================================================
+
+Clicking a booking should open a detailed page.
+
+Display all information in organized sections:
+
+CUSTOMER
+
+JOURNEY
+
+VEHICLE
+
+BOOKING STATUS
+
+PRICING
+
+COMMUNICATION
+
+INTERNAL NOTES
+
+AUDIT HISTORY
+
+Staff should be able to edit:
+
+- Customer name
+- Phone
+- Email
+- Pickup
+- Destination
+- Date
+- Time
+- Passenger count
+- Luggage
+- Journey type
+- Vehicle
+- Flight number
+- Special requests
+- Status
+- Priority
+- Assigned staff
+- Quoted price
+- Confirmed price
+- Payment status
+- Driver
+- Vehicle registration
+- Internal notes
+
+Every meaningful change must be logged.
+
+==================================================
+8. AUDIT LOG
+==================================================
+
+Create a booking history table.
+
+Example:
+
+08 Sep 2026 20:45
+Booking created
+System
+
+08 Sep 2026 20:49
+Status changed
+NEW LEAD → CONTACTED
+Admin
+
+08 Sep 2026 21:02
+Quoted price changed
+£180 → £200
+Admin
+
+08 Sep 2026 21:10
+Status changed
+QUOTED → CONFIRMED
+Admin
+
+The audit log should be immutable from the normal admin interface.
+
+==================================================
+9. EMAIL TO CHFR
+==================================================
+
+Every new booking must send a professional HTML email to:
+
+CHFRLONDON@GMAIL.COM
+
+Use SMTP or a reliable transactional email provider.
+
+Do NOT send email directly from frontend JavaScript.
+
+Recommended architecture:
+
+Frontend
+    ↓
+Backend API
+    ↓
+Database
+    ↓
+Email service
+
+Email subject:
+
+NEW CHFR BOOKING — CHFR-20260908-0001 — Customer Name
+
+Email should contain a clean professional layout.
+
+Example:
+
+CHFR LDN.
+NEW BOOKING REQUEST
+
+Booking Reference:
+CHFR-20260908-0001
+
+STATUS:
+NEW LEAD
+
+CUSTOMER
+Name: John Smith
+Mobile: +44...
+Email: john@example.com
+
+JOURNEY
+Pickup: Heathrow Airport
+Destination: Mayfair, London
+Date: 15 September 2026
+Pickup Time: 14:30
+Passengers: 2
+Luggage: 2 bags
+
+Journey Type:
+Airport Transfer
+
+Preferred Vehicle:
+Mercedes-Benz S-Class
+
+Flight Number:
+BA249
+
+SPECIAL REQUESTS
+Please meet inside Terminal 5.
+
+ADMIN
+
+Created:
+08 September 2026
+Source:
+Website
+
+Then include a prominent button:
+
+OPEN BOOKING
+
+which links to:
+
+https://YOUR-DOMAIN/admin/bookings/[BOOKING_ID]
+
+The email should look professional on desktop and mobile.
+
+==================================================
+10. CUSTOMER ACKNOWLEDGEMENT EMAIL
+==================================================
+
+After successful submission, send the customer a confirmation email.
+
+Subject:
+
+CHFR LDN — Booking Request Received — CHFR-20260908-0001
+
+Content:
+
+Dear John,
+
+Thank you for contacting CHFR LDN.
+
+We have received your chauffeur request.
+
+Booking reference:
+CHFR-20260908-0001
+
+Pickup:
+Heathrow Airport
+
+Destination:
+Mayfair, London
+
+Date:
+15 September 2026
+
+Pickup time:
+14:30
+
+Passengers:
+2
+
+Vehicle:
+Mercedes-Benz S-Class
+
+A CHFR concierge will review your request and confirm availability and pricing directly with you.
+
+Please keep your booking reference for reference.
+
+CHFR LDN.
+Luxury. Driven.
+
+Do NOT imply that the booking is confirmed.
+
+It is only a booking request until CHFR confirms it.
+
+==================================================
+11. EMAIL FAILURE HANDLING
+==================================================
+
+Critical:
+
+A failed email must NOT mean the booking is lost.
+
+Correct sequence:
+
+1. Validate
+2. Save database record
+3. Queue/send notifications
+4. Track notification status
+
+If email fails:
+
+- booking remains saved
+- notification status becomes FAILED
+- retry mechanism should be available
+- admin should see the failure
+- system should log the error safely
+- never expose technical errors to customer
+
+Customer should see:
+
+"Your booking request has been received. A CHFR concierge will confirm availability and pricing."
+
+Only show a generic failure message if the database transaction itself failed.
+
+==================================================
+12. SPREADSHEET / EXCEL REQUIREMENT
+==================================================
+
+I need the booking information available in a spreadsheet that CHFR staff can work with.
+
+IMPORTANT:
+
+Do NOT make an .xlsx file the primary database.
+
+Use the database as the source of truth.
+
+Then synchronize/export the booking records to an Excel-compatible spreadsheet.
+
+Prefer:
+
+OPTION A:
+Google Sheets as the live operational spreadsheet.
+
+OR, if the project already has Microsoft 365 infrastructure:
+
+OPTION B:
+Microsoft Excel / Microsoft Graph / Excel workbook stored in OneDrive.
+
+If neither exists, implement a reliable CSV/XLSX export from the admin dashboard.
+
+The spreadsheet should contain:
+
+Booking Ref
+Created Date
+Updated Date
+Status
+Priority
+Assigned To
+Customer Name
+Mobile
+Email
+Pickup
+Destination
+Journey Date
+Pickup Time
+Passengers
+Luggage
+Journey Type
+Preferred Vehicle
+Flight Number
+Special Requests
+Quoted Price
+Confirmed Price
+Currency
+Payment Status
+Driver
+Vehicle Registration
+Last Contacted
+Email Status
+WhatsApp Status
+Internal Notes
+
+Allow staff to:
+
+- Export all bookings to Excel
+- Export filtered bookings
+- Export today's bookings
+- Export upcoming bookings
+- Export confirmed bookings
+- Export completed bookings
+- Export cancelled bookings
+
+If using Google Sheets:
+
+- create one master sheet
+- append new bookings
+- update existing row when booking changes
+- use Booking Reference as the unique identifier
+- never create duplicate rows
+- preserve spreadsheet headers
+- log synchronization errors
+
+If using Microsoft Excel:
+
+Use Microsoft Graph API where appropriate.
+
+Do NOT attempt to simultaneously treat the XLSX file and database as independent sources of truth.
+
+==================================================
+13. WHATSAPP / OPENWA
+==================================================
+
+I want an optional self-hosted WhatsApp integration.
+
+Use OpenWA.
+
+Reference/current OpenWA documentation:
+
+https://github.com/rmyndharis/OpenWA
+
+https://docs.open-wa.org/
+
+The architecture should be:
+
+Website
+   ↓
+CHFR Backend
+   ↓
+Database
+   ↓
+Notification Service
+   ├── Email
+   ├── Spreadsheet
+   └── WhatsApp
+          ↓
+       OpenWA
+
+IMPORTANT:
+
+Create a clean WhatsApp service adapter.
+
+Do NOT hard-code OpenWA API calls throughout the application.
+
+For example:
+
+services/
+  emailService
+  spreadsheetService
+  whatsappService
+
+The WhatsApp adapter should read:
+
+OPENWA_BASE_URL
+OPENWA_API_KEY
+OPENWA_SESSION_ID
+
+from environment variables.
+
+Never expose these values to frontend code.
+
+==================================================
+14. WHATSAPP MESSAGE
+==================================================
+
+When a new booking is created, optionally send a WhatsApp message to the CHFR business number.
+
+Message example:
+
+🚘 *NEW CHFR BOOKING*
+
+*Booking:* CHFR-20260908-0001
+
+*Customer*
+John Smith
++44XXXXXXXXXX
+john@example.com
+
+*Journey*
+📍 Pickup: Heathrow Airport
+🏁 Destination: Mayfair, London
+
+📅 Date: 15 September 2026
+⏰ Time: 14:30
+👥 Passengers: 2
+🧳 Luggage: 2 bags
+
+🚘 Vehicle: Mercedes-Benz S-Class
+✈️ Flight: BA249
+
+*Journey Type*
+Airport Transfer
+
+*Special Requests*
+Please meet inside Terminal 5.
+
+*Status*
+NEW LEAD
+
+Open booking:
+https://YOUR-DOMAIN/admin/bookings/BOOKING_ID
+
+==================================================
+15. WHATSAPP DESTINATION
+==================================================
+
+The destination number must be configurable.
+
+Environment variable:
+
+CHFR_WHATSAPP_NUMBER
+
+Do not hard-code it.
+
+Normalize phone numbers into international E.164 format.
+
+For example:
+
++447XXXXXXXXX
+
+Validate the number before sending.
+
+==================================================
+16. WHATSAPP FAILURE HANDLING
+==================================================
+
+WhatsApp must NEVER block booking creation.
+
+If WhatsApp is:
+
+- offline
+- disconnected
+- QR not authenticated
+- API unavailable
+- rate limited
+- returns an error
+
+the booking must still be created successfully.
+
+Set:
+
+whatsapp_status = FAILED
+
+and provide a retry action in the admin dashboard.
+
+Admin should be able to click:
+
+SEND WHATSAPP AGAIN
+
+==================================================
+17. OPENWA DEPLOYMENT
+==================================================
+
+Prepare OpenWA for self-hosted deployment.
+
+Prefer Docker.
+
+Create a separate service/container for OpenWA rather than mixing its runtime into the main website unless there is a compelling architectural reason.
+
+Potential deployment:
+
+Render
+  ├── CHFR Web App
+  ├── CHFR Backend
+  ├── PostgreSQL
+  └── OpenWA
+
+If using Render, account for persistent storage.
+
+WhatsApp session data must survive restarts/deployments.
+
+Render filesystems are ephemeral by default, so use a persistent disk or external persistent storage where appropriate.
+
+Do NOT store WhatsApp session state only on ephemeral storage.
+
+Provide:
+
+Dockerfile
+docker-compose.yml
+render.yaml where appropriate
+environment variable documentation
+
+==================================================
+18. OPENWA HEALTH CHECK
+==================================================
+
+Add an admin/system health endpoint.
+
+Example:
+
+/api/health
+
+It should check:
+
+Database
+Email provider
+Spreadsheet integration
+OpenWA
+Application
+
+Admin dashboard should show:
+
+DATABASE       CONNECTED
+EMAIL          CONNECTED
+SPREADSHEET    CONNECTED
+WHATSAPP       CONNECTED / DISCONNECTED
+APPLICATION    HEALTHY
+
+==================================================
+19. WHATSAPP SESSION ADMIN
+==================================================
+
+If feasible, add a small admin section:
+
+WhatsApp
+
+Status:
+CONNECTED
+
+Session:
+CHFR
+
+Actions:
+
+- Connect
+- Disconnect
+- Refresh QR
+- Send test message
+
+If OpenWA exposes a QR/session API, integrate it appropriately.
+
+Do not expose OpenWA API credentials to the browser.
+
+The browser should communicate with our backend, and our backend communicates with OpenWA.
+
+==================================================
+20. SPAM PROTECTION
+==================================================
+
+The booking form is public.
+
+Add protection against:
+
+- bots
+- repeated submissions
+- automated spam
+- malicious payloads
+
+Implement:
+
+- Honeypot field
+- Server-side validation
+- Rate limiting
+- Request size limits
+- Input sanitization
+- Basic abuse protection
+
+If appropriate, add Cloudflare Turnstile.
+
+Do not make the form annoying for legitimate customers.
+
+==================================================
+21. VALIDATION
+==================================================
+
+Server-side validation is mandatory.
+
+Validate:
+
+Full name:
+required
+reasonable length
+
+Mobile:
+required
+valid international phone number
+
+Email:
+required
+valid email
+
+Pickup:
+required
+
+Destination:
+required
+
+Journey date:
+required
+valid date
+
+Pickup time:
+required
+
+Passengers:
+integer
+minimum 1
+
+Luggage:
+allowed values
+
+Journey type:
+allowed enum
+
+Vehicle:
+allowed enum
+
+Flight number:
+optional
+
+Special requests:
+optional
+reasonable maximum length
+
+Reject unexpected fields.
+
+==================================================
+22. SECURITY
+==================================================
+
+Follow production security practices.
+
+Implement:
+
+- HTTPS
+- secure cookies
+- HTTP-only cookies
+- CSRF protection where applicable
+- rate limiting
+- server-side validation
+- SQL injection protection
+- XSS protection
+- authentication
+- authorization
+- password hashing
+- environment secrets
+- no secrets in Git
+- no secrets in frontend bundle
+- safe logging
+- security headers
+
+Never log:
+
+- passwords
+- API keys
+- SMTP passwords
+- WhatsApp session credentials
+- full sensitive authentication tokens
+
+==================================================
+23. PRIVACY / GDPR
+==================================================
+
+This is a UK chauffeur company.
+
+Treat customer data as personal information.
+
+Do not unnecessarily collect personal data.
+
+Add appropriate privacy wording near the booking form.
+
+The system should support:
+
+- data deletion
+- booking export
+- access control
+- audit logs
+
+Do not expose customer bookings publicly.
+
+==================================================
+24. DATABASE
+==================================================
+
+Use a proper relational database.
+
+Prefer PostgreSQL for production.
+
+Suggested tables:
+
+users
+bookings
+booking_events
+notification_logs
+whatsapp_messages
+email_logs
+
+Potential schema:
+
+users
+- id
+- email
+- password_hash
+- name
+- role
+- created_at
+- updated_at
+
+bookings
+- id
+- booking_reference
+- full_name
+- mobile
+- email
+- pickup_location
+- destination
+- journey_date
+- pickup_time
+- passengers
+- luggage
+- journey_type
+- preferred_vehicle
+- flight_number
+- special_requests
+- status
+- priority
+- assigned_to
+- quoted_price
+- confirmed_price
+- currency
+- payment_status
+- driver_name
+- vehicle_registration
+- internal_notes
+- customer_notes
+- source
+- created_at
+- updated_at
+
+booking_events
+- id
+- booking_id
+- event_type
+- old_value
+- new_value
+- changed_by
+- created_at
+
+notification_logs
+- id
+- booking_id
+- type
+- status
+- provider_message_id
+- error_message
+- created_at
+- sent_at
+
+==================================================
+25. IDEMPOTENCY
+==================================================
+
+Prevent accidental duplicate bookings.
+
+If the browser submits twice because of:
+
+- double click
+- refresh
+- slow network
+- retry
+
+do not create two bookings.
+
+Implement idempotency keys or equivalent server-side protection.
+
+==================================================
+26. FORM UX
+==================================================
+
+Keep the current CHFR visual design.
+
+The form should:
+
+- remain premium
+- remain minimal
+- work on mobile
+- work on desktop
+- have clear validation
+- show loading state
+- disable submit while processing
+- show success confirmation
+- show booking reference
+- not expose technical errors
+
+Example success:
+
+REQUEST RECEIVED
+
+Thank you.
+
+Your CHFR booking request has been received.
+
+Booking reference:
+
+CHFR-20260908-0001
+
+A CHFR concierge will review your request and confirm availability and pricing directly with you.
+
+==================================================
+27. ADMIN DASHBOARD DESIGN
+==================================================
+
+The admin UI should feel like a professional private chauffeur operations dashboard.
+
+Use a clean dark/light interface consistent with CHFR branding.
+
+Dashboard overview cards:
+
+NEW LEADS
+CONTACTED
+QUOTED
+CONFIRMED
+GOING TODAY
+COMPLETED
+
+Also show:
+
+Today's Journeys
+Upcoming Journeys
+Uncontacted Leads
+Failed Notifications
+
+==================================================
+28. TODAY'S OPERATIONS VIEW
+==================================================
+
+Create:
+
+/admin/today
+
+Show today's journeys.
+
+Columns:
+
+Time
+Booking
+Customer
+Pickup
+Destination
+Vehicle
+Passengers
+Driver
+Status
+Notes
+
+Sort chronologically.
+
+Use status indicators.
+
+This should be useful operationally from a phone or laptop.
+
+==================================================
+29. UPCOMING BOOKINGS
+==================================================
+
+Create:
+
+/admin/upcoming
+
+Show future bookings.
+
+Allow filtering:
+
+Today
+Tomorrow
+Next 7 days
+Next 30 days
+Custom date
+
+==================================================
+30. CUSTOMER COMMUNICATION
+==================================================
+
+On the booking detail page, add actions:
+
+Email Customer
+WhatsApp Customer
+Copy Phone
+Copy Email
+Mark Contacted
+Add Note
+Change Status
+
+The system should log these actions.
+
+==================================================
+31. MANUAL WHATSAPP
+==================================================
+
+Allow admin to send a manual WhatsApp message to the customer from the booking detail page.
+
+Example:
+
+"Hi John, this is CHFR LDN regarding booking CHFR-20260908-0001..."
+
+But:
+
+- require confirmation before sending
+- log the message
+- record timestamp
+- record sender
+- record delivery/API result if available
+
+==================================================
+32. EMAIL TEMPLATES
+==================================================
+
+Do not hard-code massive email HTML inside route handlers.
+
+Create reusable templates.
+
+For example:
+
+emails/
+  newBooking.ts
+  customerAcknowledgement.ts
+  bookingConfirmed.ts
+  bookingUpdated.ts
+  bookingCancelled.ts
+
+Allow future template changes without touching business logic.
+
+==================================================
+33. BOOKING UPDATE NOTIFICATIONS
+==================================================
+
+When staff updates important customer-facing information, support sending an update email.
+
+Examples:
+
+- booking confirmed
+- pickup time changed
+- pickup location changed
+- vehicle changed
+- journey cancelled
+
+Do NOT automatically send an email for every internal field edit.
+
+Only customer-impacting changes should trigger customer notification.
+
+Make this behavior configurable.
+
+==================================================
+34. PRICE
+==================================================
+
+The customer does NOT receive an automatic final price unless staff confirms it.
+
+Fields:
+
+Quoted price
+Confirmed price
+Currency
+
+Default currency:
+
+GBP
+
+But keep it configurable.
+
+==================================================
+35. NO ONLINE PAYMENT
+==================================================
+
+Do NOT add Stripe or online card payment unless specifically requested later.
+
+The existing website states that no card details are requested online.
+
+Maintain this workflow.
+
+==================================================
+36. API STRUCTURE
+==================================================
+
+Create clean API endpoints.
+
+For example:
+
+POST /api/bookings
+
+GET /api/admin/bookings
+
+GET /api/admin/bookings/:id
+
+PATCH /api/admin/bookings/:id
+
+DELETE /api/admin/bookings/:id
+
+GET /api/admin/bookings/:id/history
+
+POST /api/admin/bookings/:id/email
+
+POST /api/admin/bookings/:id/whatsapp
+
+POST /api/admin/bookings/:id/whatsapp/retry
+
+GET /api/admin/export/bookings
+
+GET /api/health
+
+Use proper authentication and authorization.
+
+Do not expose admin endpoints to unauthenticated users.
+
+==================================================
+37. ROLE SYSTEM
+==================================================
+
+Implement at least:
+
+ADMIN
+STAFF
+
+ADMIN can:
+
+- edit everything
+- manage users
+- delete/archive records
+- configure integrations
+
+STAFF can:
+
+- view bookings
+- update bookings
+- change statuses
+- add notes
+- contact customers
+
+Avoid unnecessary permissions complexity initially.
+
+==================================================
+38. DELETE / ARCHIVE
+==================================================
+
+Do not hard-delete bookings by default.
+
+Prefer:
+
+ARCHIVED
+
+or soft deletion.
+
+Maintain the audit trail.
+
+Only administrators should be able to permanently delete records.
+
+==================================================
+39. EXPORT
+==================================================
+
+Admin dashboard must provide:
+
+Export CSV
+Export Excel
+
+The exported spreadsheet must be clean.
+
+Use proper column names.
+
+Dates should be readable.
+
+Prices should be numeric where appropriate.
+
+No broken JSON in spreadsheet cells.
+
+==================================================
+40. BACKUP
+==================================================
+
+Production deployment must have a backup strategy.
+
+PostgreSQL should be backed up.
+
+Do not rely on an Excel file as backup.
+
+Document:
+
+- database backup
+- restore procedure
+- OpenWA session persistence
+- environment variables
+- deployment
+
+==================================================
+41. ENVIRONMENT VARIABLES
+==================================================
+
+Create:
+
+.env.example
+
+Include placeholders such as:
+
+DATABASE_URL=
+
+APP_URL=
+
+ADMIN_EMAIL=
+
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
+
+OPENWA_BASE_URL=
+OPENWA_API_KEY=
+OPENWA_SESSION_ID=
+CHFR_WHATSAPP_NUMBER=
+
+GOOGLE_SHEETS_ID=
+GOOGLE_SERVICE_ACCOUNT_JSON=
+
+or Microsoft Graph variables if Microsoft Excel is selected.
+
+ADMIN_SESSION_SECRET=
+
+TURNSTILE_SECRET_KEY=
+
+Do NOT include real credentials.
+
+==================================================
+42. ERROR HANDLING
+==================================================
+
+Create centralized error handling.
+
+User-facing errors must be friendly.
+
+Example:
+
+"Something went wrong sending your request. Please try again or contact CHFR directly."
+
+Developer logs can contain more information, but never secrets.
+
+Use structured logging.
+
+==================================================
+43. TESTING
+==================================================
+
+Write tests.
+
+At minimum:
+
+Booking validation
+Booking creation
+Duplicate submission protection
+Database persistence
+Email notification
+Spreadsheet synchronization
+WhatsApp notification
+Status update
+Audit log
+Authentication
+Authorization
+Export
+
+Also test:
+
+WhatsApp unavailable
+
+Email unavailable
+
+Spreadsheet unavailable
+
+Database unavailable
+
+The booking should not disappear because one notification provider failed.
+
+==================================================
+44. END-TO-END TEST
+==================================================
+
+Create an end-to-end test that simulates:
+
+Customer submits:
+
+Name:
+John Smith
+
+Mobile:
++447700900000
+
+Email:
+john@example.com
+
+Pickup:
+Heathrow Terminal 5
+
+Destination:
+The Savoy, London
+
+Date:
+future date
+
+Time:
+14:30
+
+Passengers:
+2
+
+Luggage:
+2 bags
+
+Journey Type:
+Airport Transfer
+
+Vehicle:
+Mercedes-Benz S-Class
+
+Flight:
+BA249
+
+Special Requests:
+Meet inside arrivals.
+
+Verify:
+
+1. Booking created.
+2. Booking reference generated.
+3. Database record exists.
+4. Internal email generated.
+5. Customer email generated.
+6. Spreadsheet row created/updated.
+7. WhatsApp payload generated.
+8. Admin can view booking.
+9. Admin can change status.
+10. Audit event created.
+
+==================================================
+45. DEPLOYMENT
+==================================================
+
+Prepare production deployment instructions.
+
+Prefer Render if compatible with the existing project.
+
+Potential architecture:
+
+CHFR Website/API
+        |
+        v
+PostgreSQL
+        |
+        +---- Email
+        |
+        +---- Spreadsheet
+        |
+        +---- OpenWA
+                  |
+                  v
+               WhatsApp
+
+Create:
+
+render.yaml
+
+if appropriate.
+
+Document all services and environment variables.
+
+For OpenWA:
+
+Use Docker.
+
+Ensure persistent session storage.
+
+Do not deploy WhatsApp session storage on ephemeral filesystem.
+
+If Render's architecture makes OpenWA unsuitable for the same service, deploy OpenWA separately.
+
+==================================================
+46. IMPORTANT OPENWA NOTE
+==================================================
+
+Use the current OpenWA API documentation rather than inventing endpoints.
+
+Check:
+
+https://docs.open-wa.org/
+
+and the current OpenWA GitHub repository:
+
+https://github.com/rmyndharis/OpenWA
+
+Before implementing the integration.
+
+Do not assume an old OpenWA endpoint still exists.
+
+Implement the integration according to the current API.
+
+Keep the WhatsApp provider replaceable.
+
+For example:
+
+WhatsAppProvider interface
+
+OpenWAProvider implements WhatsAppProvider
+
+This makes it possible to replace OpenWA with WhatsApp Business Cloud API later without rewriting the booking system.
+
+==================================================
+47. SECURITY AROUND WHATSAPP
+==================================================
+
+Do not expose OpenWA directly to the public internet without authentication.
+
+The CHFR backend should communicate with OpenWA using a private/authenticated API.
+
+Do not expose:
+
+OPENWA_API_KEY
+
+to frontend JavaScript.
+
+Use HTTPS.
+
+Use API authentication.
+
+Restrict administrative OpenWA actions.
+
+==================================================
+48. FINAL FILE STRUCTURE
+==================================================
+
+Adapt to the existing project, but aim for a structure conceptually similar to:
+
+src/
+  components/
+  pages/
+  app/
+  api/
+  services/
+    email/
+    whatsapp/
+    spreadsheet/
+  database/
+  auth/
+  validation/
+  admin/
+  templates/
+  utils/
+
+tests/
+
+docker/
+  openwa/
+
+.env.example
+docker-compose.yml
+render.yaml
+README.md
+
+Do not blindly force this structure if the existing framework has a better convention.
+
+==================================================
+49. README
+==================================================
+
+Create/update README.md.
+
+Include:
+
+1. Architecture
+2. Local development
+3. Database setup
+4. Environment variables
+5. Email setup
+6. Spreadsheet setup
+7. OpenWA setup
+8. WhatsApp QR authentication
+9. Render deployment
+10. Database migration
+11. Admin account creation
+12. Backup
+13. Troubleshooting
+14. Production security checklist
+
+==================================================
+50. DO NOT BREAK THE EXISTING WEBSITE
+==================================================
+
+This is extremely important.
+
+The current CHFR site has a premium luxury design.
+
+Do not:
+
+- replace the hero
+- redesign the fleet section
+- remove existing sections
+- change typography unnecessarily
+- remove existing animations
+- change navigation unnecessarily
+- break mobile layout
+- change the brand colors
+- remove Instagram links
+- remove legal pages
+
+Only improve the booking functionality and add the necessary admin/backend functionality.
+
+The existing frontend should continue to look like CHFR.
+
+==================================================
+51. FINAL QA
+==================================================
+
+Before declaring the task complete:
+
+Run:
+
+- npm test / equivalent
+- lint
+- typecheck
+- build
+- database migration
+- end-to-end tests
+
+Check:
+
+Desktop
+Mobile
+Tablet
+
+Check:
+
+Chrome
+Safari
+Firefox
+
+Check booking form.
+
+Check admin authentication.
+
+Check database.
+
+Check email.
+
+Check spreadsheet.
+
+Check WhatsApp.
+
+Check failure handling.
+
+Check duplicate submissions.
+
+Check security.
+
+==================================================
+52. IMPLEMENTATION STRATEGY
+==================================================
+
+Do NOT simply give me instructions.
+
+Actually modify the existing project.
+
+Work incrementally:
+
+PHASE 1
+Inspect existing project.
+
+PHASE 2
+Implement database and booking API.
+
+PHASE 3
+Connect existing booking form.
+
+PHASE 4
+Implement email notifications.
+
+PHASE 5
+Implement admin dashboard.
+
+PHASE 6
+Implement audit logging.
+
+PHASE 7
+Implement Excel/Google Sheets synchronization/export.
+
+PHASE 8
+Implement OpenWA integration.
+
+PHASE 9
+Implement health monitoring.
+
+PHASE 10
+Testing.
+
+PHASE 11
+Production deployment configuration.
+
+After each major phase, verify that the application still builds.
+
+==================================================
+53. IMPORTANT DECISION RULE
+==================================================
+
+If something is ambiguous, prefer the solution that is:
+
+- production-ready
+- secure
+- maintainable
+- inexpensive
+- easy for a small chauffeur business to operate
+- compatible with the current website
+- easy to replace later
+
+Do not over-engineer.
+
+Do not introduce unnecessary microservices.
+
+The core booking application should remain simple.
+
+==================================================
+54. SUCCESS CRITERIA
+==================================================
+
+The implementation is complete only when:
+
+A customer can visit:
+
+https://www.chfrldn.com/
+
+fill in the booking form and submit it.
+
+Then:
+
+→ booking is stored permanently
+→ unique CHFR booking reference is generated
+→ CHFRLONDON@GMAIL.COM receives a professional booking email
+→ customer receives acknowledgement
+→ booking appears in admin dashboard
+→ booking appears in spreadsheet/export
+→ staff can update the booking
+→ changes are tracked
+→ status can move from NEW LEAD → CONTACTED → QUOTED → CONFIRMED → GOING → COMPLETED
+→ staff can see today's journeys
+→ staff can export bookings
+→ WhatsApp notification can be sent through OpenWA
+→ WhatsApp failure does not destroy the booking
+→ email failure does not destroy the booking
+→ duplicate submissions are prevented
+→ customer data is protected
+→ admin area is authenticated
+→ system can be deployed to production
+
+Do not finish by merely explaining what could be built.
+
+Build it.
+
+At the end, provide:
+
+1. What you changed
+2. Files created/modified
+3. Database schema
+4. Environment variables required
+5. How to run locally
+6. How to create the admin user
+7. How to configure email
+8. How to configure spreadsheet
+9. How to connect OpenWA
+10. How to scan the WhatsApp QR
+11. How to deploy to Render
+12. Any remaining manual configuration
+13. Exact production test procedure
+
+Also clearly identify anything that could not be automated and requires me to perform an external action, such as:
+
+- Gmail/SMTP credentials
+- Google Sheets service account
+- Microsoft account authorization
+- WhatsApp QR scan
+- Render environment variables
+- DNS configuration
+
+Do not fabricate successful integrations if credentials or external access are unavailable.
+
+One architectural change I'd strongly recommend
+
+Don't make the system:
+
+Website → Excel → Email → WhatsApp
+
+Make it:
+
+Website → PostgreSQL → Notification/CRM services
+
+                    ┌───────────────┐
+                    │   CHFR SITE   │
+                    │ Booking Form  │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ CHFR BACKEND  │
+                    │ Validation    │
+                    │ Anti-spam     │
+                    │ Booking API   │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  PostgreSQL   │
+                    │ Source of     │
+                    │ Truth         │
+                    └───────┬───────┘
+                            │
+          ┌─────────────────┼─────────────────┐
+          ▼                 ▼                 ▼
+     ┌─────────┐      ┌────────────┐    ┌───────────┐
+     │  Email  │      │ Excel/     │    │  OpenWA   │
+     │         │      │ Sheets     │    │ WhatsApp  │
+     └─────────┘      └────────────┘    └───────────┘
+          │                 │                 │
+          ▼                 ▼                 ▼
+       CHFR Gmail       Staff Sheet       CHFR WhatsApp
+
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ ADMIN PANEL   │
+                    │               │
+                    │ Leads         │
+                    │ Confirmed     │
+                    │ Going         │
+                    │ Completed     │
+                    │ Cancelled     │
+                    └───────────────┘

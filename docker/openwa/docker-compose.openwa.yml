@@ -1,0 +1,35 @@
+# Standalone OpenWA stack, for running the gateway on its own host.
+# From the project root the bundled service in ../../docker-compose.yml is
+# usually easier; this file is for a separate VPS or a dedicated box.
+#
+#   git clone https://github.com/rmyndharis/OpenWA.git ./OpenWA
+#   API_KEY=$(openssl rand -hex 32) docker compose -f docker-compose.openwa.yml up -d --build
+
+services:
+  openwa:
+    build:
+      context: ./OpenWA
+    container_name: chfr-openwa
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: '2785'
+      API_KEY: ${API_KEY:?set API_KEY}
+    volumes:
+      # The paired WhatsApp session. Losing this means re-scanning the QR code.
+      - openwa-sessions:/app/data
+    # Bind to loopback only. Put a TLS-terminating reverse proxy with
+    # authentication in front of it if the CHFR app runs on another host.
+    ports:
+      - '127.0.0.1:2785:2785'
+    # Chromium needs more shared memory than Docker's 64 MB default.
+    shm_size: '1gb'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:2785/api/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  openwa-sessions:

@@ -1,0 +1,84 @@
+# CHFR LDN — full local stack: web app, PostgreSQL and the OpenWA gateway.
+#
+#   docker compose up -d --build
+#   docker compose run --rm web npm run create-admin:prod
+#
+# OpenWA is built from its own repository (it publishes no image). Clone it
+# alongside this project first — see docker/openwa/README.md.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chfr
+      POSTGRES_PASSWORD: chfr_local_password
+      POSTGRES_DB: chfr
+    volumes:
+      - chfr-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U chfr -d chfr']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Not published by default — nothing outside this network needs it.
+    # Uncomment to inspect the database with a local client.
+    # ports: ['5432:5432']
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://chfr:chfr_local_password@db:5432/chfr
+      DATABASE_SSL: 'false'
+      TRUST_PROXY: 'true'
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?set ADMIN_SESSION_SECRET in .env}
+      IP_HASH_SALT: ${IP_HASH_SALT:?set IP_HASH_SALT in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-CHFRLONDON@GMAIL.COM}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
+      # The web app reaches OpenWA over the private compose network only.
+      OPENWA_BASE_URL: http://openwa:2785
+      OPENWA_API_KEY: ${OPENWA_API_KEY:-}
+      OPENWA_SESSION_ID: ${OPENWA_SESSION_ID:-CHFR}
+      CHFR_WHATSAPP_NUMBER: ${CHFR_WHATSAPP_NUMBER:-}
+      SPREADSHEET_PROVIDER: ${SPREADSHEET_PROVIDER:-none}
+      GOOGLE_SHEETS_ID: ${GOOGLE_SHEETS_ID:-}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${GOOGLE_SERVICE_ACCOUNT_JSON:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+    ports:
+      - '3000:3000'
+
+  openwa:
+    # OpenWA ships no published image, so it is built from a local clone:
+    #   git clone https://github.com/rmyndharis/OpenWA.git ../OpenWA
+    build:
+      context: ../OpenWA
+    restart: unless-stopped
+    profiles: ['whatsapp']
+    environment:
+      NODE_ENV: production
+      PORT: '2785'
+      API_KEY: ${OPENWA_API_KEY:?set OPENWA_API_KEY in .env}
+    volumes:
+      # WhatsApp session state MUST be durable. Losing this volume means
+      # re-scanning the QR code on the CHFR phone.
+      - openwa-sessions:/app/data
+    # Deliberately NOT published to the host: only the web service, on the
+    # private network, is allowed to talk to it.
+    expose:
+      - '2785'
+
+volumes:
+  chfr-db:
+  openwa-sessions:

@@ -1,0 +1,184 @@
+:root{
+  --bg:#111111;
+  --bg2:#171717;
+  --panel:#1c1c1c;
+  --text:#f5f5f5;
+  --muted:#a8a8a8;
+  --line:#2c2c2c;
+  --red:#ff4a5e;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+.container{width:min(1180px,calc(100% - 40px));margin:0 auto}
+.nav-wrap{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  background:rgba(17,17,17,.75);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(16px);
+}
+.nav{height:78px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.brand{display:inline-flex;flex-direction:column;line-height:.82}
+.brand-main{font-size:30px;font-weight:800;letter-spacing:-1.8px;color:var(--red)}
+.brand-sub{font-size:11px;font-weight:800;letter-spacing:1.2px;margin-top:8px;align-self:center}
+.nav-links{display:flex;gap:32px;font-size:13px;color:#d8d8d8}
+.nav-links a:hover{color:#fff}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--red);color:#111;
+  padding:15px 22px;border-radius:2px;
+  font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  border:0;cursor:pointer;
+  transition:.2s ease;
+}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.btn-small{padding:12px 17px}
+.hero{
+  min-height:92vh;
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  overflow:hidden;
+}
+.hero-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 56%}
+.hero-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.58) 42%,rgba(0,0,0,.20) 72%,rgba(0,0,0,.22) 100%);
+}
+.hero-content{position:relative;z-index:2;padding-bottom:118px}
+.eyebrow,.kicker{
+  color:var(--red);font-size:11px;letter-spacing:2.6px;font-weight:700;text-transform:uppercase
+}
+.hero h1{
+  font-size:clamp(58px,9vw,128px);
+  line-height:.88;letter-spacing:-6px;margin:20px 0 24px;
+  max-width:820px
+}
+.hero h1 span{color:var(--red)}
+.hero p{font-size:18px;color:#d7d7d7;max-width:520px;line-height:1.6;margin:0 0 34px}
+.hero-actions{display:flex;align-items:center;gap:28px}
+.text-link{font-size:13px;font-weight:600}
+.text-link span{color:var(--red)}
+.hero-footer{
+  position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:28px;
+  display:flex;justify-content:space-between;color:#b7b7b7;font-size:10px;letter-spacing:1.3px;text-transform:uppercase
+}
+.statement{padding:110px 0;border-bottom:1px solid var(--line)}
+.statement-grid{display:grid;grid-template-columns:1fr 2fr;gap:80px}
+.statement h2,.section-head h2,.fleet-copy h2,.book h2{
+  font-size:clamp(38px,5vw,72px);letter-spacing:-3.3px;line-height:1.02;margin:0 0 28px
+}
+.statement p,.fleet-copy p,.book p{color:var(--muted);font-size:17px;line-height:1.8;max-width:680px}
+.section{padding:120px 0;border-bottom:1px solid var(--line)}
+.section-head{display:grid;grid-template-columns:1fr 2fr;gap:80px;margin-bottom:58px}
+.section-head.compact{margin-bottom:45px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-left:1px solid var(--line)}
+.card{padding:34px 28px;min-height:290px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:#141414}
+.card:hover{background:#191919}
+.card-no{font-size:11px;color:var(--red);letter-spacing:1px}
+.card h3{font-size:20px;margin:72px 0 16px}
+.card p{font-size:14px;line-height:1.7;color:var(--muted)}
+.fleet-grid{display:grid;grid-template-columns:.9fr 1.4fr;gap:70px;align-items:center}
+.fleet-tags{display:flex;flex-wrap:wrap;gap:9px;margin-top:34px}
+.fleet-tags span{padding:10px 13px;border:1px solid var(--line);font-size:11px;color:#d4d4d4}
+.fleet-image-wrap{position:relative;overflow:hidden}
+.fleet-image-wrap img{width:100%;height:540px;object-fit:cover}
+.fleet-label{
+  position:absolute;left:22px;bottom:22px;background:rgba(17,17,17,.88);
+  padding:14px 16px;display:flex;flex-direction:column;gap:5px;backdrop-filter:blur(12px)
+}
+.fleet-label strong{font-size:12px;letter-spacing:1.6px}
+.fleet-label span{color:#aaa;font-size:10px}
+.experience-grid{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.experience-grid>div{padding:36px 24px;border-right:1px solid var(--line)}
+.experience-grid span{color:var(--red);font-size:11px}
+.experience-grid h3{font-size:20px;margin:46px 0 10px}
+.experience-grid p{font-size:13px;color:var(--muted)}
+.book{background:#0c0c0c}
+.book-grid{display:grid;grid-template-columns:1fr 1fr;gap:90px}
+.book-meta{display:flex;flex-direction:column;gap:12px;margin-top:36px;color:#9b9b9b;font-size:12px}
+.booking-form{background:#151515;border:1px solid var(--line);padding:30px}
+.booking-form label{display:flex;flex-direction:column;gap:9px;margin-bottom:18px;color:#cfcfcf;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.booking-form input,.booking-form select,.booking-form textarea{
+  width:100%;background:#0f0f0f;border:1px solid #303030;color:white;
+  padding:14px 13px;font:inherit;outline:none;border-radius:0
+}
+.booking-form input:focus,.booking-form select:focus,.booking-form textarea:focus{border-color:var(--red)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.full{width:100%}
+.form-note{font-size:10px!important;line-height:1.5!important;color:#777!important;margin:12px 0 0!important}
+footer{padding:44px 0}
+.footer-grid{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:end;gap:28px}
+.footer-copy{text-align:center;color:#bcbcbc;font-size:12px;letter-spacing:1.4px}
+.footer-links{display:flex;justify-content:flex-end;gap:22px;font-size:12px}
+.copyright{grid-column:1/-1;padding-top:28px;border-top:1px solid var(--line);color:#777;font-size:10px;margin-top:10px}
+.footer-brand .brand-main{font-size:26px}
+@media (max-width:900px){
+  .nav-links{display:none}
+  .hero{min-height:86vh}
+  .hero-overlay{background:linear-gradient(0deg,rgba(0,0,0,.86),rgba(0,0,0,.3))}
+  .hero-content{padding-bottom:120px}
+  .hero-footer{gap:10px;flex-wrap:wrap}
+  .statement-grid,.section-head,.fleet-grid,.book-grid{grid-template-columns:1fr;gap:35px}
+  .cards,.experience-grid{grid-template-columns:1fr 1fr}
+  .fleet-image-wrap img{height:420px}
+}
+@media (max-width:560px){
+  .container{width:min(100% - 28px,1180px)}
+  .nav{height:68px}
+  .brand-main{font-size:26px}
+  .hero h1{letter-spacing:-3.5px}
+  .hero p{font-size:15px}
+  .hero-actions{align-items:flex-start;flex-direction:column;gap:18px}
+  .hero-footer{font-size:8px}
+  .statement,.section{padding:80px 0}
+  .cards,.experience-grid,.two-col{grid-template-columns:1fr}
+  .card{min-height:220px}
+  .card h3{margin-top:45px}
+  .fleet-image-wrap img{height:300px}
+  .booking-form{padding:20px}
+  .footer-grid{grid-template-columns:1fr}
+  .footer-copy{text-align:left}
+  .footer-links{justify-content:flex-start}
+}
+
+/* --------------------------------------------------------------------------
+   Booking form additions. Purely additive — no existing rule is changed, and
+   every value reuses the variables already defined above.
+   -------------------------------------------------------------------------- */
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.booking-form input[aria-invalid="true"],
+.booking-form select[aria-invalid="true"],
+.booking-form textarea[aria-invalid="true"]{border-color:var(--red)}
+.field-error{display:block;color:var(--red);font-size:10px;letter-spacing:.4px;
+  text-transform:none;margin-top:-4px}
+.form-alert{border:1px solid var(--red);background:rgba(255,74,94,.08);color:#ffc3ca;
+  padding:13px 14px;font-size:12px;line-height:1.6;margin-bottom:16px}
+.form-note a{color:#9b9b9b;text-decoration:underline;text-underline-offset:2px}
+.form-note a:hover{color:var(--red)}
+.booking-form button[disabled]{opacity:.65;cursor:not-allowed;transform:none;filter:none}
+.booking-success{background:#151515;border:1px solid var(--line);padding:30px}
+.booking-success h3{font-size:28px;letter-spacing:-1.3px;margin:14px 0 16px}
+.booking-success p{color:var(--muted);font-size:14px;line-height:1.75;margin:0 0 16px;max-width:none}
+.ref-box{border:1px solid var(--red);background:#111;padding:16px 18px;margin:0 0 20px}
+.ref-box span{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8d8d8d}
+.ref-box strong{display:block;font-size:22px;letter-spacing:.6px;margin-top:8px}
+#turnstileMount:not(:empty){margin-bottom:16px}
+
+/* Legal pages reuse the site's section rhythm and typography. */
+.legal{padding:150px 0 100px}
+.legal h1{font-size:clamp(38px,5vw,66px);letter-spacing:-3px;line-height:1.02;margin:18px 0 30px}
+.legal h2{font-size:20px;letter-spacing:-.4px;margin:44px 0 14px}
+.legal p,.legal li{color:var(--muted);font-size:15px;line-height:1.85;max-width:720px}
+.legal ul{padding-left:20px}
+.legal li{margin-bottom:9px}
+.legal a{color:var(--red)}
+.legal .updated{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#777}

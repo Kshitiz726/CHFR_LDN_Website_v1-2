@@ -1,0 +1,93 @@
+# CHFR LDN — Render blueprint.
+#
+# Creates the web service and a managed PostgreSQL database. Secrets marked
+# `sync: false` must be filled in once, by hand, in the Render dashboard —
+# they are never committed to git.
+#
+# OpenWA is intentionally NOT defined here. It needs a persistent disk for its
+# WhatsApp session and runs a headless browser, so it belongs on its own
+# service — see docker/openwa/README.md and the README's deployment section.
+
+services:
+  - type: web
+    name: chfr-ldn
+    runtime: node
+    plan: starter
+    region: frankfurt
+    branch: main
+    # --include=dev is required: NODE_ENV=production (set below) otherwise makes
+    # npm skip devDependencies, and TypeScript itself is one of them.
+    # Migrations run automatically at boot, so the build only compiles.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chfr-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: 'true'
+      - key: DB_DRIVER
+        value: pg
+      - key: TRUST_PROXY
+        value: 'true'
+
+      # Generated once by Render and then kept — never rotate casually, as
+      # rotating ADMIN_SESSION_SECRET is harmless but IP_HASH_SALT resets
+      # abuse-detection continuity.
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true
+      - key: IP_HASH_SALT
+        generateValue: true
+
+      # Set this to your live domain once DNS is pointed at Render.
+      - key: APP_URL
+        value: https://www.chfrldn.com
+      - key: ADMIN_EMAIL
+        value: CHFRLONDON@GMAIL.COM
+
+      # --- Fill these in the Render dashboard --------------------------------
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+      - key: SPREADSHEET_PROVIDER
+        value: none
+      - key: GOOGLE_SHEETS_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+
+      - key: WHATSAPP_ENABLED
+        value: 'false'
+      - key: OPENWA_BASE_URL
+        sync: false
+      - key: OPENWA_API_KEY
+        sync: false
+      - key: OPENWA_SESSION_ID
+        value: CHFR
+      - key: CHFR_WHATSAPP_NUMBER
+        sync: false
+
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+
+databases:
+  - name: chfr-postgres
+    plan: basic-256mb
+    region: frankfurt
+    databaseName: chfr
+    user: chfr
