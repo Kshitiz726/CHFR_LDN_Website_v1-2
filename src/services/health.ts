@@ -131,7 +131,12 @@ async function checkEmail(deep: boolean): Promise<Check> {
     }
     if (!deep) {
       return (
-        recall('email') ?? { status: 'CONFIGURED', detail: `Resend (HTTPS), from ${config.smtpFrom} — not yet verified` }
+        recall('email') ?? {
+          status: 'CONFIGURED',
+          detail:
+            `Resend (HTTPS), from ${config.smtpFrom}. This quick check does not contact Resend; ` +
+            `add ?deep=1 to test a real send.`,
+        }
       );
     }
     const started = Date.now();
@@ -157,7 +162,9 @@ async function checkEmail(deep: boolean): Promise<Check> {
     return (
       recall('email') ?? {
         status: 'CONFIGURED',
-        detail: `SMTP ${config.SMTP_HOST}:${config.SMTP_PORT}, from ${config.smtpFrom} — not yet verified`,
+        detail:
+          `SMTP ${config.SMTP_HOST}:${config.SMTP_PORT}, from ${config.smtpFrom}. This quick check does ` +
+          `not open a connection; add ?deep=1 to test the handshake.`,
       }
     );
   }
@@ -192,10 +199,15 @@ async function checkEmail(deep: boolean): Promise<Check> {
 async function checkSpreadsheet(deep: boolean): Promise<Check> {
   const provider = spreadsheetProvider();
   if (!provider.configured) {
-    return { status: 'NOT_CONFIGURED', detail: 'No live spreadsheet — dashboard export is available' };
+    return { status: 'NOT_CONFIGURED', detail: 'No live spreadsheet. The dashboard export is available.' };
   }
   if (!deep) {
-    return recall('spreadsheet') ?? { status: 'CONFIGURED', detail: `${provider.name} — not yet verified` };
+    return (
+      recall('spreadsheet') ?? {
+        status: 'CONFIGURED',
+        detail: `${provider.name}. This quick check does not contact it; add ?deep=1 to test.`,
+      }
+    );
   }
 
   return timeBoxed(
