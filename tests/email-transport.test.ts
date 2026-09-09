@@ -310,3 +310,35 @@ describe('health diagnostics', () => {
     expect(publicReport.recentFailures).toBeUndefined();
   });
 });
+
+describe('sandbox sender is not mistaken for a working setup', () => {
+  it('warns that resend.dev can only reach the account owner', async () => {
+    // Credentials verify perfectly with the sandbox sender, so this would
+    // otherwise show as healthy while no customer ever receives anything.
+    const { healthReport, resetHealthCache } = await import('../src/services/health.js');
+    const { setEmailTransport } = await import('../src/services/email/index.js');
+    const { config } = await import('../src/config/env.js');
+    resetHealthCache();
+
+    const original = config.smtpFrom;
+    (config as any).smtpFrom = 'CHFR LDN <onboarding@resend.dev>';
+    process.env.RESEND_API_KEY = 're_test_key';
+    (config as any).RESEND_API_KEY = 're_test_key';
+
+    setEmailTransport({
+      configured: true,
+      async send() { return { ok: true }; },
+      async verify() { return { ok: true }; },
+    });
+
+    const report = await healthReport({ deep: true });
+    expect(report.checks.email.status).not.toBe('CONNECTED');
+    expect(report.checks.email.detail).toContain('TEST address');
+    expect(report.checks.email.detail).toContain('resend.com/domains');
+
+    (config as any).smtpFrom = original;
+    (config as any).RESEND_API_KEY = undefined;
+    delete process.env.RESEND_API_KEY;
+    setEmailTransport(undefined);
+  });
+});

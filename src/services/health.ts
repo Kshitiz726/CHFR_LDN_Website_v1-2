@@ -115,6 +115,20 @@ async function checkEmail(deep: boolean): Promise<Check> {
   }
   const provider = emailProviderName();
   if (provider === 'resend') {
+    // resend.dev is Resend's sandbox sender. It only delivers to the address
+    // the Resend account was registered with, so customers and the CHFR inbox
+    // receive nothing. The credentials verify perfectly, which makes this fail
+    // silently — so it is called out explicitly rather than shown as healthy.
+    if (/@resend\.dev/i.test(config.smtpFrom)) {
+      return {
+        status: 'CONFIGURED',
+        detail:
+          `Sending from ${config.smtpFrom}, which is Resend's TEST address — it can ONLY ` +
+          `deliver to the email your Resend account was created with. Customers and ` +
+          `${config.ADMIN_EMAIL} will receive nothing. Verify your domain at ` +
+          `https://resend.com/domains, then set SMTP_FROM to an address on it.`,
+      };
+    }
     if (!deep) {
       return (
         recall('email') ?? { status: 'CONFIGURED', detail: `Resend (HTTPS), from ${config.smtpFrom} — not yet verified` }
