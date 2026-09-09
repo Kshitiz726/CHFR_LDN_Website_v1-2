@@ -8,3 +8,7 @@ dist/
 coverage/
 openwa-data/
 *.local
+
+# Screenshots dropped into the web-served folder must never ship publicly.
+public/Screenshot*.png
+public/screenshot*.png
