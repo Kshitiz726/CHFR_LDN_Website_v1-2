@@ -396,3 +396,12 @@ describe('email diagnostics page', () => {
     expect(ctx.email.outbox.at(-1)!.to).toBe('someone@example.com');
   });
 });
+
+describe('local .env loading', () => {
+  it('does not read a developer .env during tests', async () => {
+    // Test runs must not depend on whatever happens to be on the machine.
+    const { config } = await import('../src/config/env.js');
+    expect(config.NODE_ENV).toBe('test');
+    expect(config.DB_DRIVER).toBe('pglite');
+  });
+});

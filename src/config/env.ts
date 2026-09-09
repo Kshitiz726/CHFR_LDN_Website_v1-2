@@ -1,4 +1,52 @@
 import { z } from 'zod';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+/**
+ * Loads a local .env file into process.env.
+ *
+ * Real environment variables always win, so a deployment's configuration can
+ * never be overridden by a stray file, and the test-suite's own settings stay
+ * authoritative. Implemented here rather than via a dependency because the
+ * format we need is a handful of KEY=value lines.
+ */
+function loadDotEnvFile(path = resolve(process.cwd(), '.env')): void {
+  // The test-suite sets everything it needs explicitly; reading a developer's
+  // .env there would make test runs depend on the machine.
+  if (process.env.NODE_ENV === 'test') return;
+
+  let contents: string;
+  try {
+    contents = readFileSync(path, 'utf8');
+  } catch {
+    return; // No .env is normal in production.
+  }
+
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const withoutExport = trimmed.startsWith('export ') ? trimmed.slice(7).trim() : trimmed;
+    const eq = withoutExport.indexOf('=');
+    if (eq <= 0) continue;
+
+    const key = withoutExport.slice(0, eq).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    if (key in process.env) continue; // never override a real variable
+
+    let value = withoutExport.slice(eq + 1).trim();
+    const quoted = (value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"));
+    if (quoted && value.length >= 2) {
+      value = value.slice(1, -1);
+      // Only double quotes get escape handling, matching common .env behaviour.
+      if (withoutExport[eq + 1] === '"') value = value.replace(/\\n/g, '\n');
+    }
+    process.env[key] = value;
+  }
+}
+
+loadDotEnvFile();
+
 
 /**
  * Central, validated configuration. Nothing else in the app reads process.env

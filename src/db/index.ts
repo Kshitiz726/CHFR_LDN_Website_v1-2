@@ -159,7 +159,12 @@ export async function initDatabase(): Promise<Database> {
   }
 
   if (!config.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not set. Set it, or use DB_DRIVER=pglite for a throwaway in-memory database.');
+    throw new Error(
+      'DATABASE_URL is not set.\n' +
+        '  • Working on production? Run this from the Render dashboard: your service -> Shell.\n' +
+        '  • Working locally? Put DATABASE_URL in a .env file in the project root (see .env.example).\n' +
+        '  • Just experimenting? Prefix the command with DB_DRIVER=pglite for a throwaway database.',
+    );
   }
 
   const pool = new pg.Pool({
