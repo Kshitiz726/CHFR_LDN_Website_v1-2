@@ -46,6 +46,28 @@ describe('end-to-end: customer submits, staff works the lead', () => {
 
   afterAll(teardownTestApp);
 
+  it('0. every external host the public pages load is allowed by the CSP', async () => {
+    // A blocked font host does not error anywhere visible: the page just
+    // silently renders in a fallback face and no longer looks like CHFR.
+    const csp = (await request(ctx.app).get('/')).headers['content-security-policy'] ?? '';
+
+    for (const page of ['/', '/privacy.html', '/terms.html']) {
+      const html = (await request(ctx.app).get(page)).text;
+      // Only tags that actually fetch something. A canonical URL or an og:url
+      // is metadata, and an <a href> is navigation; neither is a CSP concern.
+      const hosts = new Set([
+        ...[...html.matchAll(/<link\b[^>]*\brel="(?:stylesheet|preconnect|preload)"[^>]*>/g)]
+          .flatMap((tag) => [...tag[0]!.matchAll(/href="(https:\/\/[^/"]+)/g)])
+          .map((m) => m[1]!),
+        ...[...html.matchAll(/<(?:script|img)\b[^>]*\bsrc="(https:\/\/[^/"]+)/g)].map((m) => m[1]!),
+      ]);
+
+      for (const host of hosts) {
+        expect(csp, `${page} loads ${host}, which the CSP must allow`).toContain(host);
+      }
+    }
+  });
+
   it('1. the booking form on the public site posts to the API', async () => {
     const page = await request(ctx.app).get('/');
     expect(page.status).toBe(200);

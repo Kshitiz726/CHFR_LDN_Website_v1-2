@@ -29,9 +29,22 @@ export function securityHeaders() {
         formAction: ["'self'"],
         scriptSrc,
         // The admin pages use a small amount of inline styling for status
-        // colours; Google Fonts serves the marketing site's typeface.
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        // colours. Two font hosts, and both are load-bearing: Fontshare serves
+        // Switzer, the marketing site's typeface, and Google Fonts serves Inter
+        // for the dashboard. Dropping either silently falls back to a system
+        // font and changes how the site looks.
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://fonts.googleapis.com',
+          'https://api.fontshare.com',
+        ],
+        fontSrc: [
+          "'self'",
+          'https://fonts.gstatic.com',
+          'https://cdn.fontshare.com',
+          'data:',
+        ],
         imgSrc: ["'self'", 'data:'],
         connectSrc,
         frameSrc,
