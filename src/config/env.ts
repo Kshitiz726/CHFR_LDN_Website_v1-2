@@ -96,6 +96,11 @@ const schema = z.object({
 
   // Email
   ADMIN_EMAIL: z.string().default('CHFRLONDON@GMAIL.COM'),
+  // A second address that receives a short "new booking" ping on every request,
+  // alongside the full internal email to ADMIN_EMAIL. Set it empty to turn the
+  // ping off; setting it to the same address as ADMIN_EMAIL also skips it, so
+  // nobody is ever emailed twice about one booking.
+  ALERT_EMAIL: z.string().default('anjbaig@gmail.com'),
   // 'auto' prefers Resend when a key is present, then SMTP. Many managed hosts
   // block outbound SMTP ports, so HTTPS delivery is the safer default.
   EMAIL_PROVIDER: z.enum(['auto', 'smtp', 'resend']).default('auto'),

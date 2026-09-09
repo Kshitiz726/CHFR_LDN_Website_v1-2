@@ -28,18 +28,18 @@ describe('notification fan-out', () => {
     const res = await request(ctx.app).post('/api/bookings').send(sampleBooking());
     const ref = res.body.data.booking_reference;
 
-    expect(ctx.email.outbox).toHaveLength(2);
+    expect(ctx.email.outbox).toHaveLength(3);
 
     const internal = ctx.email.outbox.find((m) => m.to === 'CHFRLONDON@GMAIL.COM')!;
     expect(internal).toBeDefined();
-    expect(internal.content.subject).toBe(`NEW CHFR BOOKING — ${ref} — John Smith`);
+    expect(internal.content.subject).toBe(`New CHFR booking ${ref} from John Smith`);
     expect(internal.content.html).toContain('Heathrow Terminal 5');
     expect(internal.content.html).toContain(ref);
     expect(internal.content.html).toContain('/admin/bookings/'); // "Open booking" button
 
     const customer = ctx.email.outbox.find((m) => m.to === 'john@example.com')!;
     expect(customer).toBeDefined();
-    expect(customer.content.subject).toBe(`CHFR LDN — Booking Request Received — ${ref}`);
+    expect(customer.content.subject).toBe(`CHFR LDN Booking Request Received, reference ${ref}`);
     expect(customer.content.text).toContain('A CHFR concierge will review your request');
     // Must never imply the journey is confirmed.
     expect(customer.content.text).not.toMatch(/\bis confirmed\b/i);
@@ -48,6 +48,35 @@ describe('notification fan-out', () => {
     expect(ctx.whatsapp.sent).toHaveLength(1);
     expect(ctx.whatsapp.sent[0]!.to).toBe('+447700900999');
     expect(ctx.whatsapp.sent[0]!.body).toContain(ref);
+  });
+
+  it('sends a short new-booking alert to ALERT_EMAIL, separate from the full internal email', async () => {
+    const res = await request(ctx.app).post('/api/bookings').send(sampleBooking());
+    const ref = res.body.data.booking_reference;
+
+    const alert = ctx.email.outbox.find((m) => m.to === 'anjbaig@gmail.com')!;
+    expect(alert).toBeDefined();
+    expect(alert.content.subject).toBe(`New CHFR booking ${ref}`);
+
+    // Short means short: the essentials and a link, not the whole booking.
+    expect(alert.content.text).toContain('John Smith');
+    expect(alert.content.text).toContain('Heathrow Terminal 5');
+    expect(alert.content.text).toContain('/admin/bookings/');
+    expect(alert.content.text).not.toContain('john@example.com');
+
+    // It is a genuinely different email from the full internal one.
+    const internal = ctx.email.outbox.find((m) => m.to === 'CHFRLONDON@GMAIL.COM')!;
+    expect(alert.content.html.length).toBeLessThan(internal.content.html.length);
+  });
+
+  it('never puts an em dash in anything a recipient reads', async () => {
+    await request(ctx.app).post('/api/bookings').send(sampleBooking());
+
+    for (const message of ctx.email.outbox) {
+      expect(message.content.subject).not.toMatch(/[\u2013\u2014]/);
+      expect(message.content.text).not.toMatch(/[\u2013\u2014]/);
+      expect(message.content.html).not.toMatch(/[\u2013\u2014]/);
+    }
   });
 
   it('escapes customer input in the email HTML', async () => {
@@ -76,7 +105,7 @@ describe('notification fan-out', () => {
     const logs = await db().query(
       `SELECT status, error_message FROM notification_logs WHERE channel = 'EMAIL'`,
     );
-    expect(logs.rows).toHaveLength(2);
+    expect(logs.rows).toHaveLength(3); // internal, short alert, customer
     expect(logs.rows.every((r: any) => r.status === 'FAILED')).toBe(true);
     expect(logs.rows[0].error_message).toContain('SMTP');
   });
@@ -89,7 +118,7 @@ describe('notification fan-out', () => {
 
     const { rows } = await db().query('SELECT sheet_status FROM bookings');
     expect(rows[0].sheet_status).toBe('FAILED');
-    expect(ctx.email.outbox).toHaveLength(2); // email was unaffected
+    expect(ctx.email.outbox).toHaveLength(3); // email was unaffected
   });
 
   it('keeps the booking when WhatsApp is unavailable', async () => {
@@ -101,7 +130,7 @@ describe('notification fan-out', () => {
     const { rows } = await db().query('SELECT whatsapp_sent, whatsapp_status FROM bookings');
     expect(rows[0].whatsapp_sent).toBe(false);
     expect(rows[0].whatsapp_status).toBe('FAILED');
-    expect(ctx.email.outbox).toHaveLength(2);
+    expect(ctx.email.outbox).toHaveLength(3);
   });
 
   it('survives every channel failing at once', async () => {

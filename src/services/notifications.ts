@@ -5,6 +5,7 @@ import { loadRefOptions, type RefOption } from '../domain/refOptions.js';
 import { emailTransport } from './email/index.js';
 import {
   newBookingEmail,
+  newBookingAlertEmail,
   customerAcknowledgementEmail,
   bookingConfirmedEmail,
   bookingCancelledEmail,
@@ -118,7 +119,7 @@ export async function dispatchNewBooking(booking: BookingRow): Promise<DispatchR
 
   // All three channels run concurrently and independently. `allSettled` plus
   // the per-channel guard means one rejection cannot cancel the others.
-  const [internalEmail, customerEmail, sheet, whatsapp] = await Promise.all([
+  const [internalEmail, alertEmail, customerEmail, sheet, whatsapp] = await Promise.all([
     guard(booking.id, 'EMAIL', 'INTERNAL_NEW_BOOKING', config.ADMIN_EMAIL, () =>
       sendEmail(
         booking,
@@ -129,6 +130,8 @@ export async function dispatchNewBooking(booking: BookingRow): Promise<DispatchR
         booking.email, // replying to the alert reaches the customer
       ),
     ),
+
+    guard(booking.id, 'EMAIL', 'ALERT_NEW_BOOKING', alertRecipient(), () => sendAlertEmail(booking, refMap, appUrl)),
 
     guard(booking.id, 'EMAIL', 'CUSTOMER_ACK', booking.email, () =>
       sendEmail(
@@ -167,7 +170,37 @@ export async function dispatchNewBooking(booking: BookingRow): Promise<DispatchR
     whatsapp_message_id: whatsapp.messageId ?? null,
   }).catch((err) => logger.error({ err }, 'Failed to record communication flags'));
 
-  return { outcomes: [internalEmail, customerEmail, sheet, whatsapp] };
+  return { outcomes: [internalEmail, alertEmail, customerEmail, sheet, whatsapp] };
+}
+
+/**
+ * The short new-booking ping. Skipped when unset, and when it points at
+ * ADMIN_EMAIL, which already receives the full internal email.
+ */
+function alertRecipient(): string | null {
+  const alert = config.ALERT_EMAIL?.trim();
+  if (!alert) return null;
+  if (alert.toLowerCase() === config.ADMIN_EMAIL.trim().toLowerCase()) return null;
+  return alert;
+}
+
+async function sendAlertEmail(
+  booking: BookingRow,
+  refMap: Map<string, RefOption[]>,
+  appUrl: string,
+): Promise<{ ok: boolean; skipped?: boolean; messageId?: string; error?: string }> {
+  const to = alertRecipient();
+  if (!to) {
+    return { ok: false, skipped: true, error: 'ALERT_EMAIL is unset or matches ADMIN_EMAIL' };
+  }
+  return sendEmail(
+    booking,
+    to,
+    newBookingAlertEmail({ booking, refs: refMap, appUrl }),
+    'newBookingAlert',
+    null,
+    booking.email,
+  );
 }
 
 /** Sends to the configured CHFR business number, validating it first. */

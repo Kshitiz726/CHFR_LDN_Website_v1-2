@@ -49,6 +49,9 @@ services:
         value: https://www.chfrldn.com
       - key: ADMIN_EMAIL
         value: CHFRLONDON@GMAIL.COM
+      # Short "new booking" ping, in addition to the full email above.
+      - key: ALERT_EMAIL
+        value: anjbaig@gmail.com
 
       # --- Fill these in the Render dashboard --------------------------------
       - key: SMTP_HOST

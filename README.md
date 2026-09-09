@@ -64,6 +64,26 @@ notification is attempted. Email, the spreadsheet and WhatsApp run afterwards,
 concurrently, each wrapped so a failure is recorded rather than propagated.
 A booking is never lost because Gmail was down.
 
+### Who gets emailed, and when
+
+| Moment | Recipient | Email |
+| --- | --- | --- |
+| Customer submits the form | `ADMIN_EMAIL` | Full internal booking email, with every field and an "Open booking" button |
+| Customer submits the form | `ALERT_EMAIL` | Short new-booking ping: who, where, when, and a link |
+| Customer submits the form | The customer | Acknowledgement, explicitly *not* a confirmation |
+| Staff change a customer-facing detail | The customer | Confirmed / Updated / Cancelled, carrying the current details |
+
+The customer email on a staff edit is **automatic**. It fires whenever one of
+these changes: status, pickup, destination, date, time, vehicle, confirmed
+price, driver, vehicle registration or customer notes. Internal notes, priority,
+the assignee and the draft quote never trigger it. The booking form has a
+*Do not email the customer this time* checkbox as the deliberate opt-out.
+
+When the booking becomes `CONFIRMED`, the customer receives the agreed price,
+the chauffeur's name and the vehicle registration as soon as those are filled
+in; the chauffeur block is omitted entirely until they are, so a confirmation
+sent early never shows blanks.
+
 ### Layout
 
 ```
@@ -228,7 +248,8 @@ Full annotated list in [`.env.example`](.env.example). Required in production:
 | `ADMIN_SESSION_SECRET` | ≥32 chars. `openssl rand -base64 48` |
 | `IP_HASH_SALT` | `openssl rand -hex 32` |
 | `APP_URL` | Public base URL, no trailing slash |
-| `ADMIN_EMAIL` | Where booking alerts go — `CHFRLONDON@GMAIL.COM` |
+| `ADMIN_EMAIL` | Where the full internal booking email goes — `CHFRLONDON@GMAIL.COM` |
+| `ALERT_EMAIL` | A second address that gets a short new-booking ping. Blank, or equal to `ADMIN_EMAIL`, turns it off |
 
 The process refuses to start in production if `DATABASE_URL` or
 `ADMIN_SESSION_SECRET` is missing or too short. Everything else is optional and

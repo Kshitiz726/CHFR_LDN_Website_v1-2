@@ -21,7 +21,7 @@ export function addDaysIso(isoDate: string, days: number): string {
 
 /** "15 September 2026" — the format used across emails and WhatsApp. */
 export function formatLongDate(isoDate: string | null | undefined): string {
-  if (!isoDate) return '—';
+  if (!isoDate) return 'Not set';
   const [y, m, d] = isoDate.slice(0, 10).split('-').map(Number);
   if (!y || !m || !d) return isoDate;
   return new Intl.DateTimeFormat('en-GB', {
@@ -34,7 +34,7 @@ export function formatLongDate(isoDate: string | null | undefined): string {
 
 /** "08 Sep 2026 20:45" — the format used in the audit trail. */
 export function formatDateTime(value: string | Date | null | undefined): string {
-  if (!value) return '—';
+  if (!value) return 'Not set';
   const dt = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(dt.getTime())) return String(value);
   return new Intl.DateTimeFormat('en-GB', {
@@ -52,7 +52,7 @@ export function formatDateTime(value: string | Date | null | undefined): string 
 
 /** Postgres returns TIME as HH:MM:SS; the UI and emails only ever want HH:MM. */
 export function formatTime(value: string | null | undefined): string {
-  if (!value) return '—';
+  if (!value) return 'Not set';
   return value.slice(0, 5);
 }
 

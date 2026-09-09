@@ -128,7 +128,7 @@ describe('duplicate submission protection', () => {
     // acknowledgement. Re-sending it is helpful; a second internal alert is not.
     ctx.email.clear();
     await request(ctx.app).post('/api/bookings').send(sampleBooking());
-    expect(ctx.email.outbox).toHaveLength(2); // internal + customer
+    expect(ctx.email.outbox).toHaveLength(3); // internal + short alert + customer
 
     ctx.email.clear();
     const second = await request(ctx.app).post('/api/bookings').send(sampleBooking());

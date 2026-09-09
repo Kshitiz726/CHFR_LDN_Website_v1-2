@@ -105,9 +105,11 @@ ${notices(p.flash)}
         </div>
 
         <label class="checkline" style="margin:18px 0 20px">
-          <input type="checkbox" name="notify_customer" value="on">
-          <span>Email the customer about this change. Only sent when a customer-facing detail
-          (pickup, destination, date, time, vehicle or status) actually changes.</span>
+          <input type="checkbox" name="skip_customer_email" value="on">
+          <span><strong>Do not email the customer this time.</strong> By default the customer is
+          emailed automatically whenever you change something they need to know: status, pickup,
+          destination, date, time, vehicle, confirmed price, driver, registration or customer notes.
+          Internal notes, priority and the assignee never trigger an email.</span>
         </label>
 
         <div class="btn-row">

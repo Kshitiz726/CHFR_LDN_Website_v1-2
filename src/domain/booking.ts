@@ -93,7 +93,7 @@ export const EDITABLE_FIELDS: Record<string, string> = {
 /**
  * Changes to these fields affect what the customer needs to know, so they are
  * the only ones that can trigger a customer-facing update email. Purely
- * internal edits (notes, driver allocation, pricing drafts) never do.
+ * internal edits (internal notes, assignee, draft quotes) never do.
  */
 export const CUSTOMER_IMPACTING_FIELDS = new Set([
   'pickup_location',
@@ -102,4 +102,10 @@ export const CUSTOMER_IMPACTING_FIELDS = new Set([
   'pickup_time',
   'preferred_vehicle',
   'status',
+  // Everything the customer is told at confirmation: what it costs, who is
+  // driving, and which car to look for.
+  'confirmed_price',
+  'driver_name',
+  'vehicle_registration',
+  'customer_notes',
 ]);

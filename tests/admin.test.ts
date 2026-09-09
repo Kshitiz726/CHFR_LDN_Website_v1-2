@@ -57,7 +57,7 @@ describe('status workflow and audit log', () => {
     );
     expect(rows).toHaveLength(2);
     expect(rows[0].message).toBe('Quoted price changed');
-    expect(rows[0].old_value).toBe('—');
+    expect(rows[0].old_value).toBe('Not set');
     expect(rows[0].new_value).toBe('£180.00');
     expect(rows[1].old_value).toBe('£180.00');
     expect(rows[1].new_value).toBe('£200.00');
@@ -150,20 +150,54 @@ describe('status workflow and audit log', () => {
     expect(page.text).toContain('En Route');
   });
 
-  it('emails the customer only for a customer-impacting change, when asked', async () => {
+  it('emails the customer only for a customer-impacting change', async () => {
     ctx.email.clear();
-    await patch({ internal_notes: 'Prefers a quiet chauffeur', notify_customer: true });
+    await patch({ internal_notes: 'Prefers a quiet chauffeur' });
     expect(ctx.email.outbox).toHaveLength(0);
 
-    await patch({ status: 'CONFIRMED', notify_customer: true });
+    await patch({ status: 'CONFIRMED' });
     expect(ctx.email.outbox).toHaveLength(1);
     expect(ctx.email.outbox[0]!.content.subject).toContain('Booking Confirmed');
   });
 
-  it('does not email the customer when the box is not ticked', async () => {
+  it('emails the customer by default, with no flag sent at all', async () => {
     ctx.email.clear();
     await patch({ pickup_time: '16:00' });
+    expect(ctx.email.outbox).toHaveLength(1);
+    expect(ctx.email.outbox[0]!.to).toBe('john@example.com');
+  });
+
+  it('honours skip_customer_email as the opt-out', async () => {
+    ctx.email.clear();
+    await patch({ pickup_time: '17:30', skip_customer_email: 'on' });
     expect(ctx.email.outbox).toHaveLength(0);
+  });
+
+  it('tells the customer the price, chauffeur and vehicle once they are set', async () => {
+    ctx.email.clear();
+    await patch({
+      status: 'CONFIRMED',
+      confirmed_price: 145.5,
+      driver_name: 'Marcus Hale',
+      vehicle_registration: 'CH21 FRL',
+    });
+
+    expect(ctx.email.outbox).toHaveLength(1);
+    const mail = ctx.email.outbox[0]!;
+    expect(mail.to).toBe('john@example.com');
+    expect(mail.content.subject).toContain('Booking Confirmed');
+    expect(mail.content.text).toContain('£145.50');
+    expect(mail.content.text).toContain('Marcus Hale');
+    expect(mail.content.text).toContain('CH21 FRL');
+    expect(mail.content.text).toContain('Heathrow Terminal 5');
+    expect(mail.content.html).toContain('CH21 FRL');
+  });
+
+  it('emails the customer when only the confirmed price changes', async () => {
+    ctx.email.clear();
+    await patch({ confirmed_price: 210 });
+    expect(ctx.email.outbox).toHaveLength(1);
+    expect(ctx.email.outbox[0]!.content.text).toContain('£210.00');
   });
 
   it('records notes, contact marks and archive/restore in the history', async () => {

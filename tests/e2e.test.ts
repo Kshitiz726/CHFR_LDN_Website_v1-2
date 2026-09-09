@@ -105,7 +105,7 @@ describe('end-to-end: customer submits, staff works the lead', () => {
   it('4. the internal email to CHFRLONDON@GMAIL.COM is generated correctly', async () => {
     const mail = ctx.email.outbox.find((m) => m.to === 'CHFRLONDON@GMAIL.COM');
     expect(mail).toBeDefined();
-    expect(mail!.content.subject).toBe(`NEW CHFR BOOKING — ${reference} — John Smith`);
+    expect(mail!.content.subject).toBe(`New CHFR booking ${reference} from John Smith`);
 
     for (const fragment of [
       reference, 'John Smith', '+447700900000', 'john@example.com',
@@ -124,7 +124,7 @@ describe('end-to-end: customer submits, staff works the lead', () => {
   it('5. the customer acknowledgement is generated and does not confirm the booking', async () => {
     const mail = ctx.email.outbox.find((m) => m.to === 'john@example.com');
     expect(mail).toBeDefined();
-    expect(mail!.content.subject).toBe(`CHFR LDN — Booking Request Received — ${reference}`);
+    expect(mail!.content.subject).toBe(`CHFR LDN Booking Request Received, reference ${reference}`);
     expect(mail!.content.text).toContain('Dear John,');
     expect(mail!.content.text).toContain('We have received your chauffeur request.');
     expect(mail!.content.text).toContain('Luxury. Driven.');

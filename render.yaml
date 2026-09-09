@@ -52,6 +52,10 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         value: CHFRLONDON@GMAIL.COM
+      # Short "new booking" ping, in addition to the full email above.
+      # Blank, or the same as ADMIN_EMAIL, turns it off.
+      - key: ALERT_EMAIL
+        value: anjbaig@gmail.com
 
       # --- Email -------------------------------------------------------------
       # Render blocks outbound SMTP on ports 25/465/587, so email goes out over

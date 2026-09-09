@@ -59,14 +59,14 @@ export async function isValidCode(category: RefCategory, code: string): Promise<
 
 /** Human label for a stored code; falls back to the code so unknown values still render. */
 export async function labelFor(category: RefCategory, code: string | null | undefined): Promise<string> {
-  if (!code) return '—';
+  if (!code) return 'Not set';
   const all = (await loadRefOptions()).get(category) ?? [];
   return all.find((o) => o.code === code)?.label ?? code;
 }
 
 /** A label lookup usable synchronously by templates that already loaded the map. */
 export function labelFromMap(map: Map<string, RefOption[]>, category: RefCategory, code: string | null | undefined): string {
-  if (!code) return '—';
+  if (!code) return 'Not set';
   return (map.get(category) ?? []).find((o) => o.code === code)?.label ?? code;
 }
 

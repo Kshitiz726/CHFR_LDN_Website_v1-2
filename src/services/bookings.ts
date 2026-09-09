@@ -323,7 +323,7 @@ function displayValue(
   refs: Map<string, ReturnType<typeof labelFromMap> extends string ? never : never> | Map<string, any>,
   currency: string,
 ): string {
-  if (value === null || value === undefined || value === '') return '—';
+  if (value === null || value === undefined || value === '') return 'Not set';
 
   const categories: Record<string, 'status' | 'priority' | 'payment_status' | 'journey_type' | 'vehicle' | 'luggage'> = {
     status: 'status',

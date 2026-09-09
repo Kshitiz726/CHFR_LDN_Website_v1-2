@@ -57,6 +57,10 @@ const MESSAGES: Record<string, { kind: 'ok' | 'err' | 'warn'; text: string }> = 
   resent: { kind: 'ok', text: 'Notification re-sent successfully.' },
   synced: { kind: 'ok', text: 'Spreadsheet row updated.' },
   notified: { kind: 'ok', text: 'Booking updated and the customer has been emailed.' },
+  notifyfailed: {
+    kind: 'err',
+    text: 'Booking saved, but the customer email could not be sent. The reason is in the booking history, and you can re-send it from the Notifications panel.',
+  },
   usercreated: { kind: 'ok', text: 'Staff account created.' },
   usertoggled: { kind: 'ok', text: 'Account updated.' },
   passwordchanged: { kind: 'ok', text: 'Password updated. Your other sessions have been signed out.' },
@@ -250,7 +254,11 @@ adminUiRouter.post('/bookings/:id', async (req: Request, res: Response, next: Ne
     if (!result) throw new NotFoundError('That booking does not exist.');
 
     if (result.changes.length === 0) return redirectWith(res, `/admin/bookings/${id}`, 'nochange');
-    return redirectWith(res, `/admin/bookings/${id}`, result.customerNotification?.sent ? 'notified' : 'saved');
+    // The save succeeded either way; a failed customer email must be visible
+    // rather than hidden behind a plain "saved".
+    const note = result.customerNotification;
+    const flash = note?.sent ? 'notified' : note?.attempted ? 'notifyfailed' : 'saved';
+    return redirectWith(res, `/admin/bookings/${id}`, flash);
   } catch (err) {
     next(err);
   }

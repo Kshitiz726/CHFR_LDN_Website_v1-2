@@ -76,8 +76,13 @@ export const bookingUpdateSchema = z
     internal_notes: nullableText(5000),
     customer_notes: nullableText(5000),
 
-    // Control flags — consumed by the route, never written to the booking row.
+    // Control flags, consumed by the route and never written to the booking row.
+    // The customer is emailed by default; `skip_customer_email` is the opt-out
+    // for corrections the customer should not be told about (a typo in a note,
+    // an internal reshuffle). `notify_customer` stays accepted so existing API
+    // callers keep working, and wins when it is sent explicitly.
     notify_customer: z.union([z.boolean(), z.string()]).optional(),
+    skip_customer_email: z.union([z.boolean(), z.string()]).optional(),
   })
   .strict();
 
@@ -103,7 +108,7 @@ export async function validateBookingUpdate(payload: unknown): Promise<AdminUpda
     };
   }
 
-  const { notify_customer, ...fields } = parsed.data;
+  const { notify_customer, skip_customer_email, ...fields } = parsed.data;
   const issues: FieldIssue[] = [];
   const patch: Record<string, unknown> = {};
 
@@ -151,9 +156,14 @@ export async function validateBookingUpdate(payload: unknown): Promise<AdminUpda
   }
 
   const notify =
-    notify_customer === true || notify_customer === 'true' || notify_customer === 'on' || notify_customer === '1';
+    notify_customer !== undefined ? isTruthy(notify_customer) : !isTruthy(skip_customer_email);
 
   return { ok: true, issues: [], patch, notifyCustomer: notify };
+}
+
+/** HTML checkboxes post 'on'; JSON clients send booleans or strings. */
+function isTruthy(value: boolean | string | undefined): boolean {
+  return value === true || value === 'true' || value === 'on' || value === '1';
 }
 
 export const noteSchema = z.object({
