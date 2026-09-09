@@ -91,6 +91,16 @@ services:
       - key: CHFR_WHATSAPP_NUMBER
         sync: false
 
+      # --- First admin account, or password recovery -------------------------
+      # The free plan has no Shell, so this is how the account is made: set
+      # both, deploy, sign in, then DELETE ADMIN_BOOTSTRAP_PASSWORD.
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_NAME
+        sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
+
       - key: TURNSTILE_SITE_KEY
         sync: false
       - key: TURNSTILE_SECRET_KEY

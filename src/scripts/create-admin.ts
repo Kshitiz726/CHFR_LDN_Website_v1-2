@@ -60,6 +60,10 @@ async function main(): Promise<void> {
     const user = await usersRepo.createUser({ email, name, password_hash: passwordHash, role });
     console.log(`Created ${user.role} account for ${user.email}.`);
   }
+  console.log('');
+  console.log('No shell on your hosting plan? Set ADMIN_BOOTSTRAP_EMAIL and');
+  console.log('ADMIN_BOOTSTRAP_PASSWORD as environment variables instead — the account is');
+  console.log('created on the next deploy. Remove the password variable afterwards.');
 
   console.log('Sign in at /admin/login');
   await closeDatabase();

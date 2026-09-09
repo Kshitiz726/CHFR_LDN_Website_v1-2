@@ -134,6 +134,13 @@ const schema = z.object({
   DEFAULT_CURRENCY: z.string().default('GBP'),
   BUSINESS_TIMEZONE: z.string().default('Europe/London'),
   CUSTOMER_UPDATE_EMAILS_ENABLED: bool(true),
+
+  // First-run / recovery account, applied at boot. Intended for hosting plans
+  // with no shell access. Remove ADMIN_BOOTSTRAP_PASSWORD once it has applied.
+  ADMIN_BOOTSTRAP_EMAIL: optStr,
+  ADMIN_BOOTSTRAP_NAME: optStr,
+  ADMIN_BOOTSTRAP_PASSWORD: optStr,
+  ADMIN_BOOTSTRAP_ROLE: z.enum(['ADMIN', 'STAFF']).default('ADMIN'),
 });
 
 export type AppConfig = z.infer<typeof schema> & {

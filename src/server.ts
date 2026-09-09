@@ -3,6 +3,7 @@ import { logger } from './utils/logger.js';
 import { initDatabase, closeDatabase, db } from './db/index.js';
 import { runMigrations } from './db/migrate.js';
 import { loadRefOptions } from './domain/refOptions.js';
+import { bootstrapAdminFromEnv } from './auth/bootstrap.js';
 import { purgeExpiredSessions } from './auth/session.js';
 import { purgeOldRateLimits } from './http/middleware/rateLimit.js';
 import { createApp } from './http/app.js';
@@ -15,6 +16,12 @@ async function main(): Promise<void> {
   await initDatabase();
   await runMigrations();
   await loadRefOptions(true);
+
+  // Lets an operator create or recover a staff account without shell access.
+  // A failure here must never stop the website serving bookings.
+  await bootstrapAdminFromEnv().catch((err) =>
+    logger.error({ err }, 'Admin bootstrap failed'),
+  );
 
   const app = createApp();
   const server = app.listen(config.PORT, () => {
