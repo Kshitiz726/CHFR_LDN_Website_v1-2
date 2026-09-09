@@ -72,12 +72,20 @@ A booking is never lost because Gmail was down.
 | Customer submits the form | `ALERT_EMAIL` | Short new-booking ping: who, where, when, and a link |
 | Customer submits the form | The customer | Acknowledgement, explicitly *not* a confirmation |
 | Staff change a customer-facing detail | The customer | Confirmed / Updated / Cancelled, carrying the current details |
+| Staff press **Send booked confirmation** | The customer | Short "your journey is booked" email, and the booking is marked Confirmed |
 
 The customer email on a staff edit is **automatic**. It fires whenever one of
 these changes: status, pickup, destination, date, time, vehicle, confirmed
 price, driver, vehicle registration or customer notes. Internal notes, priority,
 the assignee and the draft quote never trigger it. The booking form has a
 *Do not email the customer this time* checkbox as the deliberate opt-out.
+
+**Send booked confirmation** is the one-click version, on its own panel at the
+top of the booking page. It sends the short email and moves the status to
+`CONFIRMED` with the automatic update email suppressed, so one click is one
+email. Lines the operator has not filled in yet (chauffeur, registration,
+price) are left out rather than shown blank, and the panel says which those are
+before you press it.
 
 When the booking becomes `CONFIRMED`, the customer receives the agreed price,
 the chauffeur's name and the vehicle registration as soon as those are filled
@@ -250,6 +258,7 @@ Full annotated list in [`.env.example`](.env.example). Required in production:
 | `APP_URL` | Public base URL, no trailing slash |
 | `ADMIN_EMAIL` | Where the full internal booking email goes — `CHFRLONDON@GMAIL.COM` |
 | `ALERT_EMAIL` | A second address that gets a short new-booking ping. Blank, or equal to `ADMIN_EMAIL`, turns it off |
+| `EMAIL_REPLY_TO` | Where a customer's reply lands. Defaults to `ADMIN_EMAIL` |
 
 The process refuses to start in production if `DATABASE_URL` or
 `ADMIN_SESSION_SECRET` is missing or too short. Everything else is optional and

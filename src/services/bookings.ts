@@ -10,7 +10,7 @@ import * as repo from '../repositories/bookings.js';
 import type { ValidatedBooking } from '../validation/booking.js';
 import {
   dispatchNewBooking, sendCustomerUpdate, syncSpreadsheet, retryCustomerAck,
-  type DispatchResult,
+  sendBookedConfirmation, type ChannelOutcome, type DispatchResult,
 } from './notifications.js';
 
 /** How long an identical journey from the same customer counts as a re-submit. */
@@ -219,6 +219,46 @@ export async function updateBooking(
   }
 
   return result;
+}
+
+/**
+ * The "Send booked" button: tells the customer their journey is booked, and
+ * makes the record agree with what they were told.
+ *
+ * The status is moved to CONFIRMED with the automatic update email suppressed,
+ * because this action sends its own, shorter email. Without that suppression
+ * the customer would receive two emails for one click.
+ */
+export async function sendBookedNotice(
+  id: string,
+  actor: ActorContext,
+): Promise<{ booking: BookingRow; outcome: ChannelOutcome } | null> {
+  const before = await repo.findById(id);
+  if (!before) return null;
+
+  let booking = before;
+  if (before.status !== 'CONFIRMED') {
+    const updated = await updateBooking(id, { status: 'CONFIRMED' }, actor, { notifyCustomer: false });
+    if (updated) booking = updated.booking;
+  }
+
+  const outcome = await sendBookedConfirmation(booking, actor.userId);
+
+  await db()
+    .transaction((tx) =>
+      repo.appendEvent(tx, id, {
+        event_type: 'CUSTOMER_NOTIFIED',
+        message:
+          outcome.status === 'SENT'
+            ? 'Booked confirmation email sent to the customer'
+            : `Booked confirmation email not sent (${outcome.status})`,
+        changed_by: actor.userId,
+        changed_by_label: actor.label,
+      }),
+    )
+    .catch((err) => logger.error({ err, id }, 'Failed to log the booked confirmation event'));
+
+  return { booking, outcome };
 }
 
 /** Records a free-text internal note as an audit event. */

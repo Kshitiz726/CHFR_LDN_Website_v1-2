@@ -61,9 +61,9 @@ export class FakeEmail extends MemoryTransport {
   shouldFail = false;
   failureMessage = 'SMTP connection refused';
 
-  override async send(to: string, content: any) {
+  override async send(to: string, content: any, replyTo?: string) {
     if (this.shouldFail) return { ok: false, error: this.failureMessage };
-    return super.send(to, content);
+    return super.send(to, content, replyTo);
   }
 }
 

@@ -40,7 +40,7 @@ export function bookingDetailPage(p: BookingDetailProps): string {
   </div>
   <div class="btn-row">
     <a class="btn ghost" href="/admin/bookings">Back to bookings</a>
-    <a class="btn ghost" href="mailto:${esc(b.email)}?subject=${encodeURIComponent(`CHFR LDN — ${b.booking_reference}`)}">Email customer</a>
+    <a class="btn ghost" href="mailto:${esc(b.email)}?subject=${encodeURIComponent(`CHFR LDN booking ${b.booking_reference}`)}">Email customer</a>
     <a class="btn" href="tel:${esc(b.mobile)}">Call ${esc(b.mobile)}</a>
   </div>
 </div>
@@ -60,6 +60,8 @@ ${notices(p.flash)}
       : `<span class="badge" title="Set WHATSAPP_ENABLED and the OPENWA_* variables to enable">WhatsApp off</span>`
   }
 </div>
+
+${bookedPanel(b, csrf)}
 
 <div class="detail-grid">
   <div>
@@ -353,4 +355,43 @@ function humanEvent(type: string): string {
 
 function firstName(full: string): string {
   return (full ?? '').trim().split(/\s+/)[0] ?? '';
+}
+
+/**
+ * The one-click "tell the customer they are booked" action.
+ *
+ * It names the details that will actually be in the email, and says plainly
+ * which of them are still blank, so nobody sends a confirmation that reads as
+ * half-finished. The button still works with them blank: sometimes the car is
+ * allocated later and the customer just needs to know the journey is on.
+ */
+function bookedPanel(b: BookingRow, csrf: string): string {
+  const missing = [
+    b.driver_name ? null : 'chauffeur',
+    b.vehicle_registration ? null : 'vehicle registration',
+    (b.confirmed_price ?? b.quoted_price) ? null : 'price',
+  ].filter((x): x is string => x !== null);
+
+  const already = b.status === 'CONFIRMED';
+
+  return `
+<section class="panel" style="margin-bottom:22px">
+  <div class="section-title">Confirm to the customer</div>
+  <div style="font-size:13px;line-height:1.7;color:#dcdcdc">
+    Sends ${esc(b.full_name)} a short email: the journey is booked, their chauffeur will be at
+    <strong>${esc(b.pickup_location)}</strong> at <strong>${esc(formatTime(b.pickup_time))}</strong>
+    on <strong>${esc(formatLongDate(b.journey_date))}</strong>, with the vehicle, chauffeur and
+    agreed price.${already ? '' : ' It also marks this booking as Confirmed.'}
+  </div>
+  ${
+    missing.length
+      ? `<div class="badge" style="margin-top:12px">Not filled in yet: ${esc(missing.join(', '))}. Those lines are left out of the email.</div>`
+      : ''
+  }
+  <div class="btn-row" style="margin-top:16px">
+    <form method="post" action="/admin/bookings/${esc(b.id)}/booked" style="display:inline">
+      ${csrf}<button class="btn" type="submit">Send booked confirmation</button>
+    </form>
+  </div>
+</section>`;
 }

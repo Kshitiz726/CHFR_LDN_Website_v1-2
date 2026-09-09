@@ -56,6 +56,9 @@ services:
       # Blank, or the same as ADMIN_EMAIL, turns it off.
       - key: ALERT_EMAIL
         value: anjbaig@gmail.com
+      # Customers reply to a mailbox someone reads, not to the From address.
+      - key: EMAIL_REPLY_TO
+        value: CHFRLONDON@GMAIL.COM
 
       # --- Email -------------------------------------------------------------
       # Render blocks outbound SMTP on ports 25/465/587, so email goes out over

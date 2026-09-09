@@ -8,6 +8,7 @@ import {
   newBookingAlertEmail,
   customerAcknowledgementEmail,
   bookingConfirmedEmail,
+  bookingBookedEmail,
   bookingCancelledEmail,
   bookingUpdatedEmail,
   staffMessageEmail,
@@ -93,7 +94,9 @@ async function sendEmail(
   sentBy: string | null = null,
   replyTo?: string,
 ): Promise<{ ok: boolean; skipped?: boolean; messageId?: string; error?: string }> {
-  const result = await emailTransport().send(to, content, replyTo);
+  // Customer-facing mail replies to the inbox CHFR works from, never to the
+  // verified-domain From address, which is usually not a real mailbox.
+  const result = await emailTransport().send(to, content, replyTo ?? config.replyTo);
   try {
     await notificationsRepo.logEmail({
       bookingId: booking?.id ?? null,
@@ -321,6 +324,31 @@ export async function sendCustomerUpdate(
 
   if (outcome.status === 'SENT') {
     await markCommunication(booking.id, { last_contacted_at: new Date().toISOString() });
+  }
+  return outcome;
+}
+
+/**
+ * The short "you are booked" email, sent from its own button. Kept separate
+ * from sendCustomerUpdate because it is not a diff of what changed, it is a
+ * standalone reassurance with the current details.
+ */
+export async function sendBookedConfirmation(
+  booking: BookingRow,
+  sentBy: string | null,
+): Promise<ChannelOutcome> {
+  const refMap = await refs();
+  const content = bookingBookedEmail({ booking, refs: refMap, appUrl: config.APP_URL });
+
+  const outcome = await guard(booking.id, 'EMAIL', 'CUSTOMER_BOOKED', booking.email, () =>
+    sendEmail(booking, booking.email, content, 'bookingBooked', sentBy),
+  );
+
+  if (outcome.status === 'SENT') {
+    await markCommunication(booking.id, {
+      customer_email_sent: true,
+      last_contacted_at: new Date().toISOString(),
+    });
   }
   return outcome;
 }

@@ -9,7 +9,7 @@ import * as bookingsRepo from '../../repositories/bookings.js';
 import * as notificationsRepo from '../../repositories/notifications.js';
 import * as usersRepo from '../../repositories/users.js';
 import {
-  updateBooking, addNote, markContacted, archiveBooking, restoreBooking, purgeBooking,
+  updateBooking, addNote, markContacted, archiveBooking, restoreBooking, purgeBooking, sendBookedNotice,
 } from '../../services/bookings.js';
 import {
   retryInternalEmail, retryCustomerAck, retryWhatsApp, syncSpreadsheet, sendCustomerWhatsApp,
@@ -57,6 +57,11 @@ const MESSAGES: Record<string, { kind: 'ok' | 'err' | 'warn'; text: string }> = 
   resent: { kind: 'ok', text: 'Notification re-sent successfully.' },
   synced: { kind: 'ok', text: 'Spreadsheet row updated.' },
   notified: { kind: 'ok', text: 'Booking updated and the customer has been emailed.' },
+  booked: { kind: 'ok', text: 'Marked as booked and the customer has been emailed the confirmation.' },
+  bookedfailed: {
+    kind: 'err',
+    text: 'Marked as booked, but the confirmation email could not be sent. The reason is in the booking history.',
+  },
   notifyfailed: {
     kind: 'err',
     text: 'Booking saved, but the customer email could not be sent. The reason is in the booking history, and you can re-send it from the Notifications panel.',
@@ -284,6 +289,17 @@ adminUiRouter.post('/bookings/:id/contacted', async (req: Request, res: Response
     const updated = await markContacted(id, actorFrom(req));
     if (!updated) throw new NotFoundError('That booking does not exist.');
     redirectWith(res, `/admin/bookings/${id}`, 'contacted');
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminUiRouter.post('/bookings/:id/booked', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = String(req.params.id);
+    const result = await sendBookedNotice(id, actorFrom(req));
+    if (!result) throw new NotFoundError('That booking does not exist.');
+    redirectWith(res, `/admin/bookings/${id}`, result.outcome.status === 'SENT' ? 'booked' : 'bookedfailed');
   } catch (err) {
     next(err);
   }

@@ -327,6 +327,71 @@ export function bookingConfirmedEmail(ctx: TemplateContext): EmailContent {
   return { subject: `CHFR LDN Booking Confirmed, reference ${b.booking_reference}`, html, text };
 }
 
+// ---------------------------------------------- customer: booked (short)
+
+/**
+ * The short "you are booked, your chauffeur is on the way" email, sent from a
+ * single button on the booking page. Deliberately not the full confirmation:
+ * it is the reassurance a customer wants immediately, in the same compact
+ * format as the internal alert. The long confirmation still goes out through
+ * the normal status change when the operator saves the form.
+ */
+export function bookingBookedEmail(ctx: TemplateContext): EmailContent {
+  const b = ctx.booking;
+  const f = journeyFacts(ctx);
+  const price = money(b.confirmed_price ?? b.quoted_price, b.currency);
+
+  const body = renderSection({
+    title: 'Your journey',
+    rows: [
+      ['Pickup', b.pickup_location],
+      ['Destination', b.destination],
+      ['When', `${f.date} at ${f.time}`],
+      ['Vehicle', f.vehicle],
+      ['Chauffeur', b.driver_name],
+      ['Vehicle registration', b.vehicle_registration],
+      ['Agreed price', price],
+    ],
+  });
+
+  const intro = `Your journey is booked. Your chauffeur will be at ${b.pickup_location} at ${f.time} on ${f.date}.`;
+
+  const html = layout({
+    preheader: `Your CHFR journey is booked for ${f.date} at ${f.time}`,
+    eyebrow: 'Booked',
+    heading: `Dear ${firstName(b.full_name)},`,
+    intro,
+    badge: { label: 'Booking reference', value: b.booking_reference },
+    body,
+    footerNote:
+      'Please be ready a few minutes early. If anything needs to change, reply to this email or contact CHFR directly. CHFR will never ask for card details online.',
+  });
+
+  const text = [
+    `Dear ${firstName(b.full_name)},`,
+    '',
+    intro,
+    '',
+    `Booking reference: ${b.booking_reference}`,
+    `Pickup: ${b.pickup_location}`,
+    `Destination: ${b.destination}`,
+    `When: ${f.date} at ${f.time}`,
+    `Vehicle: ${f.vehicle}`,
+    b.driver_name ? `Chauffeur: ${b.driver_name}` : null,
+    b.vehicle_registration ? `Vehicle registration: ${b.vehicle_registration}` : null,
+    price ? `Agreed price: ${price}` : null,
+    '',
+    'Please be ready a few minutes early.',
+    '',
+    'CHFR LDN.',
+    'Luxury. Driven.',
+  ]
+    .filter((l) => l !== null)
+    .join('\n');
+
+  return { subject: `CHFR LDN Booked, reference ${b.booking_reference}`, html, text };
+}
+
 // --------------------------------------------------- customer: updated
 
 export function bookingUpdatedEmail(
@@ -472,5 +537,6 @@ export const TEMPLATES = {
   newBookingAlert: newBookingAlertEmail,
   customerAcknowledgement: customerAcknowledgementEmail,
   bookingConfirmed: bookingConfirmedEmail,
+  bookingBooked: bookingBookedEmail,
   bookingCancelled: bookingCancelledEmail,
 } as const;

@@ -200,6 +200,76 @@ describe('status workflow and audit log', () => {
     expect(ctx.email.outbox[0]!.content.text).toContain('£210.00');
   });
 
+  describe('the Send booked confirmation button', () => {
+    const sendBooked = () =>
+      request(ctx.app)
+        .post(`/admin/bookings/${id}/booked`)
+        .set('Cookie', cookie)
+        .type('form')
+        .send({ _csrf: csrf });
+
+    it('emails the customer once, and marks the booking confirmed', async () => {
+      ctx.email.clear();
+      await patch({ confirmed_price: 165, driver_name: 'Marcus Hale', vehicle_registration: 'CH21 FRL' });
+      ctx.email.clear();
+
+      const res = await sendBooked();
+      expect(res.status).toBe(302);
+
+      // Exactly one email, not the long update email as well.
+      expect(ctx.email.outbox).toHaveLength(1);
+      const mail = ctx.email.outbox[0]!;
+      expect(mail.to).toBe('john@example.com');
+      expect(mail.content.subject).toContain('Booked');
+      expect(mail.content.text).toContain('Marcus Hale');
+      expect(mail.content.text).toContain('CH21 FRL');
+      expect(mail.content.text).toContain('£165.00');
+      expect(mail.content.text).toContain('Heathrow Terminal 5');
+
+      const { rows } = await db().query('SELECT status FROM bookings');
+      expect(rows[0].status).toBe('CONFIRMED');
+    });
+
+    it('is shorter than the full confirmation email', async () => {
+      ctx.email.clear();
+      await sendBooked();
+      const booked = ctx.email.outbox[0]!;
+
+      ctx.email.clear();
+      await patch({ status: 'GOING' });
+      await patch({ status: 'CONFIRMED' });
+      const full = ctx.email.outbox.find((m) => m.content.subject.includes('Confirmed'))!;
+
+      expect(full).toBeDefined();
+      expect(booked.content.html.length).toBeLessThan(full.content.html.length);
+    });
+
+    it('sends even before the chauffeur and price are set, omitting those lines', async () => {
+      ctx.email.clear();
+      await sendBooked();
+
+      const mail = ctx.email.outbox[0]!;
+      expect(mail.content.text).toContain('is booked');
+      expect(mail.content.text).not.toContain('Chauffeur:');
+      expect(mail.content.text).not.toContain('Vehicle registration:');
+      expect(mail.content.text).not.toMatch(/[\u2013\u2014]/);
+    });
+
+    it('records the send in the booking history', async () => {
+      await sendBooked();
+      const { rows } = await db().query(
+        `SELECT message FROM booking_events WHERE event_type = 'CUSTOMER_NOTIFIED' ORDER BY id DESC LIMIT 1`,
+      );
+      expect(rows[0].message).toContain('Booked confirmation email sent');
+    });
+
+    it('replies to the CHFR inbox, not the sending domain', async () => {
+      ctx.email.clear();
+      await sendBooked();
+      expect(ctx.email.outbox[0]!.replyTo).toBe('CHFRLONDON@GMAIL.COM');
+    });
+  });
+
   it('records notes, contact marks and archive/restore in the history', async () => {
     await request(ctx.app)
       .post(`/api/admin/bookings/${id}/notes`)

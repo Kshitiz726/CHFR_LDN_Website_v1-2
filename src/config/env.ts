@@ -101,6 +101,10 @@ const schema = z.object({
   // ping off; setting it to the same address as ADMIN_EMAIL also skips it, so
   // nobody is ever emailed twice about one booking.
   ALERT_EMAIL: z.string().default('anjbaig@gmail.com'),
+  // Where a customer's reply goes. The From address has to be on a domain that
+  // Resend has verified, which is rarely a mailbox anyone reads, so replies are
+  // pointed at the inbox CHFR actually works from. Defaults to ADMIN_EMAIL.
+  EMAIL_REPLY_TO: optStr,
   // 'auto' prefers Resend when a key is present, then SMTP. Many managed hosts
   // block outbound SMTP ports, so HTTPS delivery is the safer default.
   EMAIL_PROVIDER: z.enum(['auto', 'smtp', 'resend']).default('auto'),
@@ -154,6 +158,8 @@ export type AppConfig = z.infer<typeof schema> & {
   sessionSecret: string;
   ipHashSalt: string;
   smtpFrom: string;
+  /** Where a customer's reply lands. Never blank. */
+  replyTo: string;
 };
 
 function build(raw: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -183,6 +189,7 @@ function build(raw: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionSecret: env.ADMIN_SESSION_SECRET ?? 'dev-only-insecure-session-secret-change-me',
     ipHashSalt: env.IP_HASH_SALT ?? 'dev-only-ip-salt',
     smtpFrom: env.SMTP_FROM ?? 'CHFR LDN <no-reply@chfrldn.com>',
+    replyTo: env.EMAIL_REPLY_TO?.trim() || env.ADMIN_EMAIL,
   };
 }
 

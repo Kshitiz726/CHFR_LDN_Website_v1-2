@@ -83,10 +83,10 @@ class SmtpTransport implements EmailTransport {
  */
 export class MemoryTransport implements EmailTransport {
   readonly configured = false;
-  readonly outbox: Array<{ to: string; content: EmailContent; at: Date }> = [];
+  readonly outbox: Array<{ to: string; content: EmailContent; replyTo?: string; at: Date }> = [];
 
-  async send(to: string, content: EmailContent): Promise<SendResult> {
-    this.outbox.push({ to, content, at: new Date() });
+  async send(to: string, content: EmailContent, replyTo?: string): Promise<SendResult> {
+    this.outbox.push({ to, content, replyTo, at: new Date() });
     logger.info({ to, subject: content.subject }, 'Email captured (SMTP not configured)');
     return { ok: true, skipped: true, messageId: `memory-${this.outbox.length}` };
   }
