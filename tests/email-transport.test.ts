@@ -342,3 +342,57 @@ describe('sandbox sender is not mistaken for a working setup', () => {
     setEmailTransport(undefined);
   });
 });
+
+describe('email diagnostics page', () => {
+  let ctx: Awaited<ReturnType<typeof setupTestApp>>;
+
+  beforeAll(async () => { ctx = await setupTestApp(); });
+  afterAll(teardownTestApp);
+  beforeEach(resetData);
+
+  it('requires authentication', async () => {
+    const request = (await import('supertest')).default;
+    const res = await request(ctx.app).get('/admin/diagnostics');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/admin/login');
+  });
+
+  it('shows the provider verbatim when a send is rejected', async () => {
+    const request = (await import('supertest')).default;
+    const { createTestUser, signIn } = await import('./helpers.js');
+    const { password } = await createTestUser('ADMIN');
+    const { cookie, csrf } = await signIn(ctx.app, 'admin@chfr.test', password);
+
+    ctx.email.shouldFail = true;
+    ctx.email.failureMessage = 'You can only send testing emails to your own address';
+
+    const res = await request(ctx.app)
+      .post('/admin/diagnostics/email')
+      .set('Cookie', cookie)
+      .type('form')
+      .send({ _csrf: csrf, recipient: 'someone@example.com' });
+
+    expect(res.status).toBe(200);
+    // The exact provider text is what identifies the problem — never swallow it.
+    expect(res.text).toContain('You can only send testing emails to your own address');
+    expect(res.text).toContain('Rejected');
+    ctx.email.shouldFail = false;
+  });
+
+  it('confirms a successful send and warns that accepted is not delivered', async () => {
+    const request = (await import('supertest')).default;
+    const { createTestUser, signIn } = await import('./helpers.js');
+    const { password } = await createTestUser('ADMIN');
+    const { cookie, csrf } = await signIn(ctx.app, 'admin@chfr.test', password);
+
+    const res = await request(ctx.app)
+      .post('/admin/diagnostics/email')
+      .set('Cookie', cookie)
+      .type('form')
+      .send({ _csrf: csrf, recipient: 'someone@example.com' });
+
+    expect(res.text).toContain('Accepted by the provider');
+    expect(res.text).toContain('check the provider');
+    expect(ctx.email.outbox.at(-1)!.to).toBe('someone@example.com');
+  });
+});

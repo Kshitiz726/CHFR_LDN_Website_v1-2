@@ -16,6 +16,8 @@ export interface SendResult {
   messageId?: string;
   error?: string;
   skipped?: boolean;
+  /** The provider's untouched response, surfaced on the diagnostics page. */
+  raw?: string;
 }
 
 export interface EmailTransport {

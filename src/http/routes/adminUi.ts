@@ -1,5 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { config } from '../../config/env.js';
+import { esc } from '../../utils/html.js';
 import { logger } from '../../utils/logger.js';
 import { hashIp } from '../../utils/crypto.js';
 import { loadRefOptions, OPEN_STATUSES } from '../../domain/refOptions.js';
@@ -15,6 +16,7 @@ import {
 } from '../../services/notifications.js';
 import { whatsAppProvider } from '../../services/whatsapp/index.js';
 import { healthReport } from '../../services/health.js';
+import { emailTransport, emailProviderName } from '../../services/email/index.js';
 import { hashPassword, verifyPassword, passwordIssues, DUMMY_HASH } from '../../auth/password.js';
 import {
   createSession, destroySession, destroyUserSessions,
@@ -32,6 +34,7 @@ import { bookingDetailPage } from '../../admin/views/bookingDetail.js';
 import { todayPage, upcomingPage } from '../../admin/views/operations.js';
 import { whatsappPage } from '../../admin/views/whatsapp.js';
 import { usersPage } from '../../admin/views/users.js';
+import { diagnosticsPage } from '../../admin/views/diagnostics.js';
 import { buildFilters } from './filters.js';
 import { NotFoundError } from '../../utils/errors.js';
 
@@ -484,6 +487,92 @@ adminUiRouter.post('/whatsapp/test', async (req: Request, res: Response, next: N
     });
 
     redirectWith(res, '/admin/whatsapp', result.ok ? 'sent' : 'sendfailed');
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+// ------------------------------------------------------------ diagnostics
+
+/** Renders the email diagnostics page, optionally with a test-send result. */
+async function renderDiagnostics(
+  req: Request,
+  res: Response,
+  testResult?: { ok: boolean; recipient: string; detail: string; raw?: string },
+): Promise<void> {
+  const [health, failures] = await Promise.all([
+    healthReport({ deep: true }),
+    notificationsRepo.listFailedNotifications(20),
+  ]);
+
+  render(req, res, 'Email diagnostics', 'diagnostics',
+    diagnosticsPage({
+      health,
+      failures,
+      user: req.session!.user,
+      csrf: req.session!.csrfToken,
+      emailProvider: emailProviderName(),
+      sender: config.smtpFrom,
+      adminEmail: config.ADMIN_EMAIL,
+      testResult,
+    }),
+  );
+}
+
+adminUiRouter.get('/diagnostics', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await renderDiagnostics(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminUiRouter.post('/diagnostics/email', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const recipient = String(req.body?.recipient ?? '').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipient)) {
+      await renderDiagnostics(req, res, {
+        ok: false,
+        recipient,
+        detail: 'That does not look like a valid email address.',
+      });
+      return;
+    }
+
+    const stamp = new Date().toISOString();
+    const result = await emailTransport().send(recipient, {
+      subject: `CHFR LDN — email delivery test (${stamp.slice(11, 19)})`,
+      text: `This is a CHFR LDN delivery test sent at ${stamp}.\n\nIf you are reading this, email is working.`,
+      html:
+        `<div style="font:400 15px/1.7 Arial,sans-serif;color:#111">` +
+        `<p>This is a CHFR LDN delivery test sent at ${esc(stamp)}.</p>` +
+        `<p>If you are reading this, email is working.</p></div>`,
+    });
+
+    logger.info(
+      { recipient, ok: result.ok, by: req.session!.user.id },
+      'Diagnostic test email attempted',
+    );
+
+    await notificationsRepo.logNotification({
+      bookingId: null,
+      channel: 'EMAIL',
+      kind: 'DIAGNOSTIC_TEST',
+      status: result.ok ? 'SENT' : 'FAILED',
+      recipient,
+      providerMessageId: result.messageId ?? null,
+      errorMessage: result.error ?? null,
+    });
+
+    await renderDiagnostics(req, res, {
+      ok: result.ok,
+      recipient,
+      detail: result.ok
+        ? `The provider accepted the message${result.messageId ? ` (id ${result.messageId})` : ''}.`
+        : (result.error ?? 'The provider rejected the message without giving a reason.'),
+      raw: result.raw,
+    });
   } catch (err) {
     next(err);
   }

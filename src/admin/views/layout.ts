@@ -16,6 +16,7 @@ const NAV: Array<{ href: string; label: string; key: string; adminOnly?: boolean
   { href: '/admin/today', label: "Today", key: 'today' },
   { href: '/admin/upcoming', label: 'Upcoming', key: 'upcoming' },
   { href: '/admin/whatsapp', label: 'WhatsApp', key: 'whatsapp' },
+  { href: '/admin/diagnostics', label: 'Diagnostics', key: 'diagnostics' },
   { href: '/admin/users', label: 'Users', key: 'users', adminOnly: true },
 ];
 

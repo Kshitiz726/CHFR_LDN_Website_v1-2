@@ -51,11 +51,13 @@ export class ResendTransport implements EmailTransport {
         data = { message: text.slice(0, 200) };
       }
 
+      const raw = `HTTP ${res.status}\n${text.slice(0, 1500)}`;
+
       if (!res.ok) {
-        return { ok: false, error: describeResendError(res.status, data) };
+        return { ok: false, error: describeResendError(res.status, data), raw };
       }
 
-      return { ok: true, messageId: data?.id ? String(data.id) : undefined };
+      return { ok: true, messageId: data?.id ? String(data.id) : undefined, raw };
     } catch (err) {
       const message =
         err instanceof Error && err.name === 'AbortError'
