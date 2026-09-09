@@ -4,57 +4,117 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#111111" />
-  <title>CHFR LDN. — Luxury Chauffeur London</title>
-  <meta name="description" content="CHFR LDN. — London's next-generation luxury chauffeur service. Rolls-Royce, executive travel, airport transfers, VIP and event transport." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>CHFR LDN. — Luxury Chauffeur London | Rolls-Royce &amp; Executive Travel</title>
+  <meta name="description" content="CHFR is London's next-generation luxury chauffeur service — private chauffeur travel, airport transfers, VIP and event transport, and private aviation transfers, arranged through our chauffeur network." />
+  <link rel="canonical" href="https://chfrldn.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CHFR LDN." />
+  <meta property="og:title" content="CHFR LDN. — Luxury Chauffeur London" />
+  <meta property="og:description" content="Private chauffeur travel for those who expect more. Airport transfers, executive travel, VIP journeys, weddings and private aviation across London." />
+  <meta property="og:image" content="https://chfrldn.com/assets/chfr-rolls-royce.jpeg" />
+  <meta property="og:url" content="https://chfrldn.com/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CHFR LDN. — Luxury Chauffeur London" />
+  <meta name="twitter:description" content="Private chauffeur travel for those who expect more." />
+  <meta name="twitter:image" content="https://chfrldn.com/assets/chfr-rolls-royce.jpeg" />
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "CHFR",
+    "alternateName": "CHFR LDN",
+    "url": "https://chfrldn.com/",
+    "description": "London's next-generation luxury chauffeur service, arranging private chauffeur travel, airport transfers, VIP journeys, weddings and private aviation transfers through its chauffeur network.",
+    "areaServed": {
+      "@type": "City",
+      "name": "London"
+    },
+    "sameAs": [
+      "https://instagram.com/chfrldn",
+      "https://tiktok.com/@chfrldn"
+    ]
+  }
+  </script>
 </head>
 <body>
+  <a class="skip-link" href="#top">Skip to content</a>
 
-  <header class="nav-wrap">
+  <header class="nav-wrap" id="siteNav">
     <nav class="nav container">
       <a class="brand" href="#top" aria-label="CHFR LDN home">
         <span class="brand-main">CHFR</span>
         <span class="brand-sub">LDN.</span>
       </a>
+
       <div class="nav-links">
         <a href="#services">Services</a>
         <a href="#fleet">Fleet</a>
-        <a href="#about">About</a>
-        <a href="#book">Contact</a>
+        <a href="#standard">Standard</a>
+        <a href="#corporate">Corporate</a>
       </div>
-      <a class="btn btn-small" href="#book">Book now</a>
+      <div class="nav-actions">
+        <a class="btn btn-small" href="#book">BOOK CHFR</a>
+        <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+          <span></span><span></span>
+        </button>
+      </div>
     </nav>
   </header>
 
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <div class="mobile-menu-links">
+      <a href="#services">Services</a>
+      <a href="#fleet">Fleet</a>
+      <a href="#standard">Standard</a>
+      <a href="#corporate">Corporate</a>
+      <a href="#book">Book</a>
+    </div>
+    <div class="mobile-menu-foot">
+      <a href="https://instagram.com/chfrldn" target="_blank" rel="noreferrer">Instagram</a>
+      <a href="https://tiktok.com/@chfrldn" target="_blank" rel="noreferrer">TikTok</a>
+    </div>
+  </div>
+
   <main id="top">
     <section class="hero">
-      <img class="hero-media" src="assets/chfr-rolls-royce.jpeg" alt="Black Rolls-Royce available through CHFR LDN." />
+      <div class="hero-media-wrap">
+        <img class="hero-media" id="heroMedia" src="assets/chfr-rolls-royce.jpeg" alt="Black Rolls-Royce arranged through the CHFR chauffeur network, London." width="1920" height="1280" fetchpriority="high" />
+      </div>
       <div class="hero-overlay"></div>
       <div class="hero-content container">
-        <div class="eyebrow">LONDON · UNITED KINGDOM</div>
-        <h1>Luxury.<br><span>Driven.</span></h1>
-        <p>Private chauffeur travel for those who expect more.</p>
-        <div class="hero-actions">
-          <a class="btn" href="#book">Book CHFR</a>
-          <a class="text-link" href="#fleet">Explore the fleet <span>↗</span></a>
+        <div class="eyebrow" data-reveal>LONDON &middot; UNITED KINGDOM</div>
+        <h1 data-reveal><span class="line">Luxury.</span><span class="line accent">Driven.</span></h1>
+        <p data-reveal>Private chauffeur travel for those who expect more.</p>
+        <div class="hero-actions" data-reveal>
+          <a class="btn" href="#book">BOOK CHFR</a>
+          <a class="text-link message-chfr" href="https://www.instagram.com/chfrldn/" target="_blank" rel="noopener noreferrer">MESSAGE CHFR <span aria-hidden="true">&#8599;</span></a>
+          <a class="text-link" href="#fleet">Explore the fleet <span>&#8599;</span></a>
         </div>
       </div>
-      <div class="hero-footer container">
+      <div class="hero-footer container" data-reveal>
         <span>24/7 bookings</span>
-        <span>London & beyond</span>
+        <span>London &amp; beyond</span>
         <span>Discreet. Reliable. Exceptional.</span>
       </div>
+      <div class="hero-scroll-cue" aria-hidden="true"></div>
     </section>
 
     <section class="statement">
       <div class="container statement-grid">
-        <div class="kicker">BEYOND TRANSPORTATION.</div>
-        <div>
-          <h2>London's next generation chauffeur service.</h2>
-          <p>CHFR combines world-class vehicles, professional chauffeurs and a hospitality-first experience designed around discretion, precision and style.</p>
+        <div class="kicker" data-reveal>BEYOND TRANSPORTATION.</div>
+        <div data-reveal>
+          <h2>London&rsquo;s next&#8209;generation chauffeur service.</h2>
+          <p>CHFR brings together a curated chauffeur network, hospitality-trained standards and a hospitality-first experience built around discretion, precision and style &mdash; for clients who notice the difference.</p>
         </div>
       </div>
     </section>
@@ -62,209 +122,306 @@
     <section class="services section" id="services">
       <div class="container">
         <div class="section-head">
-          <div class="kicker">SERVICES</div>
-          <h2>Every journey. One standard.</h2>
+          <div class="kicker" data-reveal>SERVICES</div>
+          <h2 data-reveal>Every journey. One standard.</h2>
         </div>
 
-        <div class="cards">
-          <article class="card">
-            <span class="card-no">01</span>
-            <h3>Airport Transfers</h3>
-            <p>Seamless arrivals and departures with flight monitoring, meet-and-greet and luggage assistance.</p>
+        <div class="service-list">
+          <article class="service-row" data-reveal>
+            <span class="service-no">01</span>
+            <div class="service-body">
+              <h3>Airport Transfers</h3>
+              <p>Seamless arrivals and departures with flight monitoring, meet &amp; greet and luggage assistance from kerb to cabin.</p>
+              <div class="tag-row">
+                <span>Heathrow</span><span>Gatwick</span><span>London City</span><span>Luton</span><span>Stansted</span>
+              </div>
+            </div>
           </article>
-          <article class="card">
-            <span class="card-no">02</span>
-            <h3>Executive Travel</h3>
-            <p>Professional point-to-point and hourly chauffeur service for founders, executives and private clients.</p>
+
+          <article class="service-row" data-reveal>
+            <span class="service-no">02</span>
+            <div class="service-body">
+              <h3>Executive Travel</h3>
+              <p>Point-to-point and hourly chauffeur service for founders, executives and teams &mdash; built around meetings, roadshows and full schedules.</p>
+              <div class="tag-row">
+                <span>Corporate travel</span><span>Meetings</span><span>Roadshows</span><span>Hourly hire</span><span>Full-day hire</span>
+              </div>
+            </div>
           </article>
-          <article class="card">
-            <span class="card-no">03</span>
-            <h3>VIP & Artists</h3>
-            <p>Discreet movements for artists, talent, athletes and high-profile guests across London and the UK.</p>
+
+          <article class="service-row" data-reveal>
+            <span class="service-no">03</span>
+            <div class="service-body">
+              <h3>VIP &amp; Artists</h3>
+              <p>Discreet movements for artists, talent, athletes and high-profile guests, planned with security-conscious routing.</p>
+              <div class="tag-row">
+                <span>Discreet transport</span><span>Entertainment</span><span>Talent</span><span>Private clients</span>
+              </div>
+            </div>
           </article>
-          <article class="card">
-            <span class="card-no">04</span>
-            <h3>Weddings & Events</h3>
-            <p>Luxury vehicle coordination for weddings, events, productions and multi-car requirements.</p>
+
+          <article class="service-row" data-reveal>
+            <span class="service-no">04</span>
+            <div class="service-body">
+              <h3>Weddings &amp; Events</h3>
+              <p>Bridal and groom transport, multiple-vehicle coordination and red-carpet arrivals &mdash; timed to the minute, styled to the occasion.</p>
+              <div class="tag-row">
+                <span>Luxury arrivals</span><span>Bridal &amp; groom cars</span><span>Multi-vehicle coordination</span><span>Red-carpet events</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="service-row" data-reveal>
+            <span class="service-no">05</span>
+            <div class="service-body">
+              <h3>Private Aviation</h3>
+              <p>FBO collections and private jet transfers coordinated around your flight, not the clock.</p>
+              <div class="tag-row">
+                <span>Farnborough</span><span>Biggin Hill</span><span>Luton</span><span>Heathrow VIP terminals</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="service-row" data-reveal>
+            <span class="service-no">06</span>
+            <div class="service-body">
+              <h3>Corporate Accounts</h3>
+              <p>Dedicated account management, consolidated invoicing and recurring journeys for executive assistants and concierge teams.</p>
+              <div class="tag-row">
+                <span>Account management</span><span>Consolidated invoicing</span><span>Recurring journeys</span><span>Concierge bookings</span>
+              </div>
+            </div>
           </article>
         </div>
       </div>
     </section>
 
     <section class="fleet section" id="fleet">
-      <div class="container fleet-grid">
-        <div class="fleet-copy">
-          <div class="kicker">THE FLEET</div>
-          <h2>Arrive differently.</h2>
-          <p>From Rolls-Royce to executive saloons and luxury MPVs, CHFR matches every journey with the right vehicle and chauffeur.</p>
-          <div class="fleet-tags">
-            <span>Rolls-Royce</span>
-            <span>Mercedes S-Class</span>
-            <span>Mercedes V-Class</span>
-            <span>Range Rover</span>
+      <div class="container">
+        <div class="section-head">
+          <div class="kicker" data-reveal>THE FLEET</div>
+          <h2 data-reveal>Arrive differently.</h2>
+        </div>
+
+        <div class="fleet-feature" data-reveal>
+          <div class="fleet-feature-image">
+            <img src="assets/chfr-rolls-royce.jpeg" alt="Rolls-Royce arranged through the CHFR chauffeur network" loading="lazy" width="1600" height="1067" />
+            <div class="fleet-label">
+              <strong>ROLLS-ROYCE</strong>
+              <span>Signature class</span>
+            </div>
+          </div>
+          <div class="fleet-feature-copy">
+            <p>Reserved for arrivals that should be remembered &mdash; available for weddings, events and VIP journeys through our chauffeur network.</p>
           </div>
         </div>
-        <div class="fleet-image-wrap">
-          <img src="assets/chfr-rolls-royce.jpeg" alt="CHFR Rolls-Royce fleet vehicle" />
-          <div class="fleet-label">
-            <strong>ROLLS-ROYCE</strong>
-            <span>Signature class</span>
-          </div>
+
+        <div class="fleet-grid-cards">
+          <article class="fleet-card" data-reveal>
+            <span class="fleet-card-no">02</span>
+            <h3>Mercedes&#8209;Benz<br>S&#8209;Class</h3>
+            <p>The standard for executive travel.</p>
+          </article>
+          <article class="fleet-card" data-reveal>
+            <span class="fleet-card-no">03</span>
+            <h3>Mercedes&#8209;Benz<br>V&#8209;Class</h3>
+            <p>Space and privacy for groups and events.</p>
+          </article>
+          <article class="fleet-card" data-reveal>
+            <span class="fleet-card-no">04</span>
+            <h3>Range<br>Rover</h3>
+            <p>Presence for the road less predictable.</p>
+          </article>
+        </div>
+
+        <p class="fleet-disclaimer" data-reveal>Selected vehicles available subject to journey and availability. CHFR-arranged journeys are fulfilled through our chauffeur network.</p>
+      </div>
+    </section>
+
+    <section class="experience section" id="standard">
+      <div class="container">
+        <div class="section-head compact">
+          <div class="kicker" data-reveal>THE CHFR STANDARD</div>
+          <h2 data-reveal>Quiet confidence.</h2>
+        </div>
+        <div class="experience-grid">
+          <div data-reveal><span>01</span><h3>Discretion.</h3><p>Your privacy is the brief, not an afterthought.</p></div>
+          <div data-reveal><span>02</span><h3>Precision.</h3><p>Routes planned. Timings held. Every detail considered.</p></div>
+          <div data-reveal><span>03</span><h3>Reliability.</h3><p>Punctual arrival, every time it matters.</p></div>
+          <div data-reveal><span>04</span><h3>Hospitality.</h3><p>Luxury is how a journey feels, not just how it looks.</p></div>
+          <div data-reveal><span>05</span><h3>Excellence.</h3><p>A standard our chauffeur network is briefed to meet.</p></div>
+        </div>
+        <div class="standard-tags" data-reveal>
+          <span>Immaculate vehicles</span><span>Professional chauffeurs</span><span>Luggage handled</span>
+          <span>Door service</span><span>Bottled water</span><span>Charging cables</span>
+          <span>Quiet cabin</span><span>Tailored journey preferences</span><span>Punctual arrival</span>
+          <span>Flight monitoring where applicable</span>
         </div>
       </div>
     </section>
 
-    <section class="experience section" id="about">
+    <section class="corporate section" id="corporate">
+      <div class="container corporate-grid">
+        <div data-reveal>
+          <div class="kicker">CORPORATE ACCOUNTS</div>
+          <h2>Chauffeur travel, accounted for.</h2>
+          <p>For executive assistants, hotels, concierges and businesses requiring reliable chauffeur travel.</p>
+        </div>
+        <div class="corporate-cta" data-reveal>
+          <button class="btn" type="button" data-preset-journey="Corporate">Open a CHFR Account</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust section" id="trust">
       <div class="container">
         <div class="section-head compact">
-          <div class="kicker">THE CHFR STANDARD</div>
-          <h2>Quiet confidence.</h2>
+          <div class="kicker" data-reveal>TRUSTED WHERE DISCRETION MATTERS</div>
+          <h2 data-reveal>Privacy over publicity.</h2>
         </div>
-        <div class="experience-grid">
-          <div><span>01</span><h3>Discretion</h3><p>Your privacy is our priority.</p></div>
-          <div><span>02</span><h3>Precision</h3><p>Every detail matters.</p></div>
-          <div><span>03</span><h3>Reliability</h3><p>Always on time. Every time.</p></div>
-          <div><span>04</span><h3>Hospitality</h3><p>Luxury is how people feel.</p></div>
+        <p class="trust-intro" data-reveal>CHFR is built for clients who value discretion. Testimonials and partnerships will appear here as they are confirmed.</p>
+        <div class="trust-grid">
+          <div class="trust-card" data-reveal>
+            <span class="trust-card-label">Client testimonial</span>
+            <span class="trust-card-status">Coming soon</span>
+          </div>
+          <div class="trust-card" data-reveal>
+            <span class="trust-card-label">Hotel partner</span>
+            <span class="trust-card-status">Coming soon</span>
+          </div>
+          <div class="trust-card" data-reveal>
+            <span class="trust-card-label">Aviation partner</span>
+            <span class="trust-card-status">Coming soon</span>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="book section" id="book">
       <div class="container book-grid">
-        <div>
+        <div data-reveal>
           <div class="kicker">BOOK CHFR</div>
           <h2>Where are we taking you?</h2>
-          <p>Tell us what you need and our concierge team will confirm availability and pricing.</p>
+          <p>Tell us what you need. A CHFR concierge will confirm availability and pricing directly.</p>
+          <div class="book-instagram">
+            <a class="text-link message-chfr" href="https://www.instagram.com/chfrldn/" target="_blank" rel="noopener noreferrer">MESSAGE CHFR <span aria-hidden="true">&#8599;</span></a>
+            <p class="instagram-note">Need a quick response? Message us on Instagram.</p>
+          </div>
           <div class="book-meta">
             <span>24/7 booking requests</span>
-            <span>London & nationwide</span>
+            <span>London &amp; nationwide</span>
             <span>Corporate accounts available</span>
           </div>
         </div>
 
-        <form class="booking-form" id="bookingForm" novalidate>
-          <!-- Left empty by real visitors; only automated submissions fill it in. -->
-          <div class="hp" aria-hidden="true">
-            <label>Company website
-              <input type="text" name="company_website" tabindex="-1" autocomplete="off">
-            </label>
-          </div>
+        <div class="booking-form-wrap" data-reveal>
+          <form class="booking-form" id="bookingForm" name="booking" method="POST" action="/api/bookings" novalidate>
+            <p class="honeypot" aria-hidden="true"><label>Don&rsquo;t fill this out: <input name="company_website" tabindex="-1" autocomplete="off" /></label></p>
 
-          <div class="two-col">
+            <div class="booking-form-fields">
+            <div class="two-col">
+              <label>
+                Full name
+                <input required type="text" name="full_name" placeholder="Your name" autocomplete="name" />
+              </label>
+              <label>
+                Mobile
+                <input required type="tel" name="mobile" placeholder="+44" autocomplete="tel" />
+              </label>
+            </div>
+
             <label>
-              Name
-              <input required type="text" name="full_name" autocomplete="name" placeholder="Your name" />
+              Email
+              <input required type="email" name="email" placeholder="you@example.com" autocomplete="email" />
             </label>
+
+            <div class="two-col">
+              <label>
+                Pickup location
+                <input required type="text" name="pickup_location" placeholder="Pickup location" />
+              </label>
+              <label>
+                Destination
+                <input required type="text" name="destination" placeholder="Destination" />
+              </label>
+            </div>
+
+            <div class="three-col">
+              <label>
+                Date
+                <input required type="date" name="journey_date" />
+              </label>
+              <label>
+                Pickup time
+                <input required type="time" name="pickup_time" />
+              </label>
+              <label>
+                Passengers
+                <input required type="number" name="passengers" min="1" max="14" placeholder="1" />
+              </label>
+            </div>
+
+            <div class="two-col">
+              <label>
+                Luggage
+                <select name="luggage">
+                  <option value="NONE">None / hand luggage</option>
+                  <option value="BAGS_1_2">1&ndash;2 bags</option>
+                  <option value="BAGS_3_4">3&ndash;4 bags</option>
+                  <option value="BAGS_5_PLUS">5+ bags</option>
+                </select>
+              </label>
+              <label>
+                Journey type
+                <select name="journey_type" id="journeyType">
+                  <option value="">Select journey type</option>
+                  <option value="AIRPORT_TRANSFER">Airport Transfer</option>
+                  <option value="EXECUTIVE">Point-to-Point</option>
+                  <option value="HOURLY">Hourly Hire</option>
+                  <option value="FULL_DAY">Full-Day Hire</option>
+                  <option value="WEDDING_EVENT">Wedding / Event</option>
+                  <option value="CORPORATE">Corporate</option>
+                  <option value="VIP">VIP / Artist</option>
+                  <option value="PRIVATE_AVIATION">Private Aviation</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="two-col">
+              <label>
+                Preferred vehicle
+                <select name="preferred_vehicle">
+                  <option value="RECOMMEND">No preference &mdash; recommend one</option>
+                  <option value="ROLLS_ROYCE">Rolls-Royce</option>
+                  <option value="MERCEDES_S_CLASS">Mercedes-Benz S-Class</option>
+                  <option value="MERCEDES_V_CLASS">Mercedes-Benz V-Class</option>
+                  <option value="RANGE_ROVER">Range Rover</option>
+                </select>
+              </label>
+              <label id="flightField" class="is-hidden">
+                Flight number <span class="optional">(if applicable)</span>
+                <input type="text" name="flight_number" placeholder="e.g. BA249" />
+              </label>
+            </div>
+
             <label>
-              Mobile
-              <input required type="tel" name="mobile" autocomplete="tel" placeholder="+44" />
+              Special requests
+              <textarea name="special_requests" rows="4" placeholder="Anything else we should know"></textarea>
             </label>
-          </div>
 
-          <label>
-            Email
-            <input required type="email" name="email" autocomplete="email" placeholder="you@example.com" />
-          </label>
+            <button class="btn full" type="submit">Request Chauffeur</button>
+            <p class="form-note">No card details are ever requested online. A CHFR concierge confirms availability and pricing directly with you.</p>
+            </div>
 
-          <div class="two-col">
-            <label>
-              Pickup
-              <input required type="text" name="pickup_location" placeholder="Pickup location" />
-            </label>
-            <label>
-              Destination
-              <input required type="text" name="destination" placeholder="Destination" />
-            </label>
-          </div>
-
-          <div class="two-col">
-            <label>
-              Date
-              <input required type="date" name="journey_date" />
-            </label>
-            <label>
-              Pickup time
-              <input required type="time" name="pickup_time" />
-            </label>
-          </div>
-
-          <div class="two-col">
-            <label>
-              Passengers
-              <input required type="number" name="passengers" min="1" max="16" value="1" />
-            </label>
-            <label>
-              Luggage
-              <select name="luggage" data-options="luggage">
-                <option value="NONE">No luggage</option>
-                <option value="ONE">1 bag</option>
-                <option value="TWO">2 bags</option>
-                <option value="THREE">3 bags</option>
-                <option value="FOUR_PLUS">4+ bags / oversized</option>
-              </select>
-            </label>
-          </div>
-
-          <label>
-            Journey type
-            <select name="journey_type" data-options="journeyTypes">
-              <option value="AIRPORT_TRANSFER">Airport Transfer</option>
-              <option value="EXECUTIVE">Executive / Point-to-Point</option>
-              <option value="HOURLY">Hourly / As Directed</option>
-              <option value="VIP">VIP &amp; Artists</option>
-              <option value="WEDDING_EVENT">Wedding / Event</option>
-              <option value="LONG_DISTANCE">Long Distance / Nationwide</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </label>
-
-          <div class="two-col">
-            <label>
-              Vehicle
-              <select name="preferred_vehicle" data-options="vehicles">
-                <option value="ROLLS_ROYCE">Rolls-Royce</option>
-                <option value="MERCEDES_S_CLASS">Mercedes S-Class</option>
-                <option value="MERCEDES_V_CLASS">Mercedes V-Class</option>
-                <option value="RANGE_ROVER">Range Rover</option>
-                <option value="RECOMMEND">Not sure — recommend one</option>
-              </select>
-            </label>
-            <label>
-              Flight number
-              <input type="text" name="flight_number" placeholder="Optional — e.g. BA249" />
-            </label>
-          </div>
-
-          <label>
-            Notes
-            <textarea name="special_requests" rows="4" placeholder="Event details, meeting point or anything else we should know"></textarea>
-          </label>
-
-          <div id="formError" class="form-alert" role="alert" hidden></div>
-
-          <div id="turnstileMount"></div>
-
-          <button class="btn full" type="submit" id="bookingSubmit">Request a quote</button>
-
-          <p class="form-note">
-            CHFR never asks for card details online. Submitting this form sends a booking
-            <em>request</em> only — a CHFR concierge will confirm availability and pricing with you directly.
-            Your details are used solely to arrange your journey and are never sold or shared.
-            See our <a href="/privacy.html">privacy notice</a>.
-          </p>
-        </form>
-
-        <div class="booking-success" id="bookingSuccess" hidden>
-          <div class="kicker">Request received</div>
-          <h3>Thank you.</h3>
-          <p>Your CHFR booking request has been received.</p>
-          <div class="ref-box">
-            <span>Booking reference</span>
-            <strong id="bookingRef">—</strong>
-          </div>
-          <p>A CHFR concierge will review your request and confirm availability and pricing directly with you.</p>
-          <p class="form-note">Please keep your booking reference. A confirmation of this request has been emailed to you.</p>
-          <button class="btn" type="button" id="bookingAnother">Make another request</button>
+            <div class="form-success" id="formSuccess" role="status" hidden>
+              <p>Your journey request has been received. A CHFR concierge will confirm availability and pricing.</p>
+              <p class="form-reference">Your booking reference: <strong id="bookingReference"></strong></p>
+              <p class="form-note">Please quote it in any message to us. A confirmation has been sent to your email.</p>
+            </div>
+            <div class="form-error" id="formError" role="alert" hidden>
+              <p>Something went wrong sending your request. Please try again, or message us on Instagram <a href="https://instagram.com/chfrldn" target="_blank" rel="noreferrer">@chfrldn</a> and we will arrange your journey from there.</p>
+            </div>
+          </form>
         </div>
       </div>
     </section>
@@ -272,20 +429,35 @@
 
   <footer>
     <div class="container footer-grid">
-      <div class="brand footer-brand">
-        <span class="brand-main">CHFR</span>
-        <span class="brand-sub">LDN.</span>
+      <div class="footer-col footer-brand-col">
+        <div class="brand footer-brand">
+          <span class="brand-main">CHFR</span>
+          <span class="brand-sub">LDN.</span>
+        </div>
+        <div class="footer-copy">Luxury. Driven.</div>
       </div>
-      <div class="footer-copy">Luxury. Driven.</div>
-      <div class="footer-links">
-        <a href="https://instagram.com/chfrldn" target="_blank" rel="noreferrer">Instagram</a>
-        <a href="https://tiktok.com/@chfrldn" target="_blank" rel="noreferrer">TikTok</a>
-        <a href="/privacy.html">Privacy</a>
+
+      <nav class="footer-col footer-links" aria-label="Footer">
+        <a href="#book">Book</a>
+        <a href="#fleet">Fleet</a>
+        <a href="#services">Services</a>
+        <a href="#corporate">Corporate</a>
+        <a href="#book">Contact</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+
+      <div class="footer-col footer-social">
+        <a href="https://instagram.com/chfrldn" target="_blank" rel="noreferrer">Instagram &middot; @CHFRLDN</a>
+        <a href="https://tiktok.com/@chfrldn" target="_blank" rel="noreferrer">TikTok &middot; @CHFRLDN</a>
       </div>
-      <div class="copyright">© 2026 CHFR LDN. All rights reserved.</div>
+
+      <div class="copyright">&copy; 2026 CHFR LDN. CHFR-arranged journeys are fulfilled through our chauffeur network.</div>
     </div>
   </footer>
 
+
+  <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

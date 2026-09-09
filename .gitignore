@@ -12,3 +12,9 @@ openwa-data/
 # Screenshots dropped into the web-served folder must never ship publicly.
 public/Screenshot*.png
 public/screenshot*.png
+
+# public/ is web-served: anything here becomes a public URL. Never put
+# credentials, notes or scratch output in it.
+public/Setup_reqrs.txt
+public/result
+public/*.txt

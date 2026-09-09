@@ -31,7 +31,7 @@ describe('end-to-end: customer submits, staff works the lead', () => {
     journey_date: journeyDate,
     pickup_time: '14:30',
     passengers: 2,
-    luggage: 'TWO',
+    luggage: 'BAGS_1_2',
     journey_type: 'AIRPORT_TRANSFER',
     preferred_vehicle: 'MERCEDES_S_CLASS',
     flight_number: 'BA249',
@@ -55,7 +55,10 @@ describe('end-to-end: customer submits, staff works the lead', () => {
       expect(page.text, field).toContain(`name="${field}"`);
     }
     expect(page.text).toContain('name="company_website"'); // honeypot
-    expect(page.text).toContain('never asks for card details online');
+    expect(page.text).toContain('action="/api/bookings"');
+    // The brief requires the site to keep saying this. The wording is the
+    // site's own; what matters is that the promise is still on the page.
+    expect(page.text).toContain('No card details are ever requested online');
   });
 
   it('2. the submission is accepted and a booking reference is generated', async () => {
@@ -92,7 +95,7 @@ describe('end-to-end: customer submits, staff works the lead', () => {
     expect(b.journey_date).toBe(journeyDate);
     expect(b.pickup_time).toBe('14:30');
     expect(b.passengers).toBe(2);
-    expect(b.luggage).toBe('TWO');
+    expect(b.luggage).toBe('BAGS_1_2');
     expect(b.journey_type).toBe('AIRPORT_TRANSFER');
     expect(b.preferred_vehicle).toBe('MERCEDES_S_CLASS');
     expect(b.flight_number).toBe('BA249');
@@ -154,7 +157,7 @@ describe('end-to-end: customer submits, staff works the lead', () => {
     for (const fragment of [
       '🚘 *NEW CHFR BOOKING*', reference, 'John Smith',
       '📍 Pickup: Heathrow Terminal 5', '🏁 Destination: The Savoy, London',
-      '⏰ Time: 14:30', '👥 Passengers: 2', '🧳 Luggage: 2 bags',
+      '⏰ Time: 14:30', '👥 Passengers: 2', '🧳 Luggage: 1-2 bags',
       '🚘 Vehicle: Mercedes S-Class', '✈️ Flight: BA249',
       'Airport Transfer', 'Meet inside arrivals.', 'New Lead',
       `https://chfr.test/admin/bookings/${bookingId}`,

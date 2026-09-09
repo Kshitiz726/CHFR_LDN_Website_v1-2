@@ -1,198 +1,219 @@
-/* CHFR LDN — booking form.
-   Submits to the CHFR booking API, shows a booking reference on success, and
-   never exposes a technical error to the customer. */
 (function () {
-  'use strict';
+  "use strict";
 
-  var form = document.getElementById('bookingForm');
-  if (!form) return;
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  var submit = document.getElementById('bookingSubmit');
-  var alertBox = document.getElementById('formError');
-  var success = document.getElementById('bookingSuccess');
-  var refOut = document.getElementById('bookingRef');
-  var again = document.getElementById('bookingAnother');
-  var submitting = false;
-
-  /* One key per filled-in form. If the customer double-clicks, the network
-     retries, or the page is re-posted, the server returns the original booking
-     instead of creating a second one. */
-  function newKey() {
-    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
-    return 'k-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+  /* ---------- Nav scroll state ---------- */
+  var nav = document.getElementById("siteNav");
+  function onScroll() {
+    if (!nav) return;
+    nav.classList.toggle("is-scrolled", window.scrollY > 12);
   }
-  var idempotencyKey = newKey();
+  document.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 
-  /* Nothing earlier than today can be requested. */
-  var dateInput = form.querySelector('input[name="journey_date"]');
-  if (dateInput) {
-    var now = new Date();
-    dateInput.min = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 10);
+  /* ---------- Mobile menu ---------- */
+  var navToggle = document.getElementById("navToggle");
+  var mobileMenu = document.getElementById("mobileMenu");
+  if (navToggle && mobileMenu) {
+    var closeMenu = function () {
+      navToggle.setAttribute("aria-expanded", "false");
+      mobileMenu.classList.remove("is-open");
+      mobileMenu.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    };
+    var openMenu = function () {
+      navToggle.setAttribute("aria-expanded", "true");
+      mobileMenu.classList.add("is-open");
+      mobileMenu.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    };
+    navToggle.addEventListener("click", function () {
+      var isOpen = mobileMenu.classList.contains("is-open");
+      isOpen ? closeMenu() : openMenu();
+    });
+    mobileMenu.querySelectorAll("a").forEach(function (link) {
+      link.addEventListener("click", closeMenu);
+    });
   }
 
-  /* Keep the selects in step with the server's reference data, so a vehicle or
-     journey type added in the dashboard appears here without a redeploy. */
-  fetch('/api/booking-options', { headers: { Accept: 'application/json' } })
-    .then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (payload) {
-      if (!payload || !payload.ok) return;
-      var data = payload.data;
-      Array.prototype.forEach.call(form.querySelectorAll('[data-options]'), function (select) {
-        var list = data[select.getAttribute('data-options')];
-        if (!list || !list.length) return;
-        var previous = select.value;
-        select.innerHTML = '';
-        list.forEach(function (item) {
-          var opt = document.createElement('option');
-          opt.value = item.value;
-          opt.textContent = item.label;
-          select.appendChild(opt);
+  /* ---------- Scroll reveal ---------- */
+  var revealEls = document.querySelectorAll("[data-reveal]");
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    revealEls.forEach(function (el) { el.classList.add("is-visible"); });
+  } else {
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
         });
-        if (previous) select.value = previous;
-      });
-      if (data.turnstileSiteKey) mountTurnstile(data.turnstileSiteKey);
-    })
-    .catch(function () { /* the hard-coded options in the HTML remain valid */ });
-
-  function mountTurnstile(siteKey) {
-    var mount = document.getElementById('turnstileMount');
-    if (!mount || mount.dataset.mounted) return;
-    mount.dataset.mounted = '1';
-    var widget = document.createElement('div');
-    widget.className = 'cf-turnstile';
-    widget.setAttribute('data-sitekey', siteKey);
-    widget.setAttribute('data-theme', 'dark');
-    mount.appendChild(widget);
-    var script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+    );
+    revealEls.forEach(function (el) { observer.observe(el); });
   }
 
-  function clearErrors() {
-    alertBox.hidden = true;
-    alertBox.textContent = '';
-    Array.prototype.forEach.call(form.querySelectorAll('.field-error'), function (el) {
-      el.parentNode.removeChild(el);
-    });
-    Array.prototype.forEach.call(form.querySelectorAll('[aria-invalid]'), function (el) {
-      el.removeAttribute('aria-invalid');
-    });
-  }
-
-  function showFieldErrors(issues) {
-    var firstField = null;
-    issues.forEach(function (issue) {
-      var field = form.querySelector('[name="' + issue.field + '"]');
-      if (!field) return;
-      field.setAttribute('aria-invalid', 'true');
-      var note = document.createElement('span');
-      note.className = 'field-error';
-      note.textContent = issue.message;
-      field.parentNode.appendChild(note);
-      if (!firstField) firstField = field;
-    });
-
-    if (firstField) {
-      firstField.focus();
-      firstField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      showAlert('Please check the details entered and try again.');
-    }
-  }
-
-  function showAlert(message) {
-    alertBox.textContent = message;
-    alertBox.hidden = false;
-    alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  function setBusy(busy) {
-    submitting = busy;
-    submit.disabled = busy;
-    submit.textContent = busy ? 'Sending…' : 'Request a quote';
-  }
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (submitting) return;
-    clearErrors();
-
-    /* Let the browser surface its own messages for obviously empty fields
-       before we go near the network. */
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-
-    var data = {};
-    new FormData(form).forEach(function (value, key) {
-      data[key] = typeof value === 'string' ? value.trim() : value;
-    });
-    data.idempotency_key = idempotencyKey;
-
-    var turnstileField = form.querySelector('[name="cf-turnstile-response"]');
-    if (turnstileField) {
-      data.turnstile_token = turnstileField.value;
-      delete data['cf-turnstile-response'];
-    }
-    if (data.passengers) data.passengers = String(data.passengers);
-
-    setBusy(true);
-
-    fetch('/api/bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(data),
-    })
-      .then(function (res) {
-        return res.json().then(function (body) { return { status: res.status, body: body }; });
-      })
-      .then(function (result) {
-        var body = result.body || {};
-
-        if (body.ok && body.data && body.data.booking_reference) {
-          refOut.textContent = body.data.booking_reference;
-          form.hidden = true;
-          success.hidden = false;
-          success.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return;
+  /* ---------- Hero parallax ---------- */
+  var heroMedia = document.getElementById("heroMedia");
+  if (heroMedia && !reduceMotion) {
+    var ticking = false;
+    var updateParallax = function () {
+      var offset = Math.min(window.scrollY * 0.18, 120);
+      heroMedia.style.transform = "translateY(" + offset + "px) scale(1.02)";
+      ticking = false;
+    };
+    document.addEventListener(
+      "scroll",
+      function () {
+        if (!ticking) {
+          requestAnimationFrame(updateParallax);
+          ticking = true;
         }
+      },
+      { passive: true }
+    );
+  }
 
-        var error = body.error || {};
-        if (error.fields && error.fields.length) {
-          showFieldErrors(error.fields);
-        } else {
-          showAlert(
-            error.message ||
-              'Something went wrong sending your request. Please try again — or message us on ' +
-              'Instagram @chfrldn and we will arrange your journey from there.'
-          );
-        }
-        setBusy(false);
-      })
-      .catch(function () {
-        /* Network or parsing failure — the customer sees plain language only. */
-        showAlert(
-          'We could not reach CHFR just now. Please check your connection and try again — ' +
-          'or message us on Instagram @chfrldn and we will arrange your journey from there.'
-        );
-        setBusy(false);
-      });
+  /* ---------- Journey type -> flight number visibility ---------- */
+  var journeyType = document.getElementById("journeyType");
+  var flightField = document.getElementById("flightField");
+  function syncFlightField() {
+    if (!journeyType || !flightField) return;
+    var needsFlight = journeyType.value === "AIRPORT_TRANSFER" || journeyType.value === "PRIVATE_AVIATION";
+    flightField.classList.toggle("is-hidden", !needsFlight);
+  }
+  if (journeyType) {
+    journeyType.addEventListener("change", syncFlightField);
+    syncFlightField();
+  }
+
+  /* ---------- Corporate / preset CTAs ---------- */
+  document.querySelectorAll("[data-preset-journey]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var value = el.getAttribute("data-preset-journey");
+      if (journeyType) {
+        journeyType.value = value;
+        syncFlightField();
+      }
+      var bookSection = document.getElementById("book");
+      if (bookSection) bookSection.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+    });
   });
 
-  if (again) {
-    again.addEventListener('click', function () {
-      form.reset();
-      idempotencyKey = newKey();
-      clearErrors();
-      setBusy(false);
-      success.hidden = true;
-      form.hidden = false;
-      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  /* ---------- Booking form -> POST /api/bookings ---------- */
+  var form = document.getElementById("bookingForm");
+  if (form) {
+    var successEl = document.getElementById("formSuccess");
+    var errorEl = document.getElementById("formError");
+    var referenceEl = document.getElementById("bookingReference");
+    var submitBtn = form.querySelector('button[type="submit"]');
+    var originalLabel = submitBtn ? submitBtn.textContent : "Request Chauffeur";
+
+    /* Stable for the life of one filled-in form, so a double tap or a retry
+       after a flaky connection cannot create a second booking. */
+    function newKey() {
+      if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+      return "k-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+    }
+    var idempotencyKey = newKey();
+
+    function clearFieldErrors() {
+      form.querySelectorAll("[aria-invalid]").forEach(function (el) {
+        el.removeAttribute("aria-invalid");
+      });
+      form.querySelectorAll(".field-error").forEach(function (el) {
+        el.parentNode.removeChild(el);
+      });
+    }
+
+    function showFieldErrors(fields) {
+      clearFieldErrors();
+      var first = null;
+      fields.forEach(function (issue) {
+        var input = form.querySelector('[name="' + issue.field + '"]');
+        if (!input) return;
+        input.setAttribute("aria-invalid", "true");
+        var msg = document.createElement("span");
+        msg.className = "field-error";
+        msg.textContent = issue.message;
+        (input.parentNode || form).appendChild(msg);
+        if (!first) first = input;
+      });
+      if (first) {
+        first.focus();
+        first.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      }
+    }
+
+    function setBusy(busy) {
+      if (!submitBtn) return;
+      submitBtn.disabled = busy;
+      submitBtn.textContent = busy ? "Sending..." : originalLabel;
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearFieldErrors();
+      if (errorEl) errorEl.hidden = true;
+
+      /* The browser's own validation is a convenience; the server is the authority. */
+      if (typeof form.checkValidity === "function" && !form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      setBusy(true);
+
+      var payload = {};
+      new FormData(form).forEach(function (value, key) {
+        var v = typeof value === "string" ? value.trim() : value;
+        /* Empty optional fields are omitted so the server's defaults apply. */
+        if (v !== "") payload[key] = v;
+      });
+      payload.idempotency_key = idempotencyKey;
+
+      fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(function (res) {
+          return res.json().then(
+            function (body) { return body; },
+            function () { return {}; }
+          );
+        })
+        .then(function (body) {
+          var data = body && body.data;
+          if (body && body.ok && data && data.booking_reference) {
+            if (referenceEl) referenceEl.textContent = data.booking_reference;
+            form.reset();
+            form.classList.add("is-submitted");
+            if (successEl) {
+              successEl.hidden = false;
+              successEl.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+            }
+            /* A genuinely new enquiry after this one must not be deduplicated. */
+            idempotencyKey = newKey();
+            return;
+          }
+
+          var error = (body && body.error) || {};
+          if (error.fields && error.fields.length) {
+            showFieldErrors(error.fields);
+          } else if (errorEl) {
+            errorEl.hidden = false;
+          }
+          setBusy(false);
+        })
+        .catch(function () {
+          /* Network failure. The customer sees plain language, never a stack trace. */
+          if (errorEl) errorEl.hidden = false;
+          setBusy(false);
+        });
     });
   }
 })();

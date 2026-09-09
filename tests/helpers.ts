@@ -146,7 +146,7 @@ export function sampleBooking(overrides: Record<string, unknown> = {}) {
     journey_date: addDaysIso(todayIso(), 7),
     pickup_time: '14:30',
     passengers: 2,
-    luggage: 'TWO',
+    luggage: 'BAGS_1_2',
     journey_type: 'AIRPORT_TRANSFER',
     preferred_vehicle: 'MERCEDES_S_CLASS',
     flight_number: 'BA249',
