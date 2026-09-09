@@ -1,4 +1,4 @@
-import type { BookingRow } from '../../../domain/booking.js';
+import { NOT_SET, type BookingRow } from '../../../domain/booking.js';
 import { labelFromMap, type RefOption } from '../../../domain/refOptions.js';
 import { formatLongDate, formatTime, formatDateTime } from '../../../utils/dates.js';
 import { layout, renderSection, renderFreeText, renderButton } from './layout.js';
@@ -24,6 +24,23 @@ function money(amount: number | null, currency: string): string | null {
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }
+}
+
+/**
+ * Describes one change in a sentence a customer can read.
+ *
+ * A field that was empty before has nothing to say "from", so "Not set to
+ * Marcus Hale" is nonsense; it is simply being set. The same in reverse when
+ * a value is removed.
+ */
+function describeChange(change: { from: string; to: string }): string {
+  const had = change.from && change.from !== NOT_SET;
+  const has = change.to && change.to !== NOT_SET;
+
+  if (!had && has) return `Set to ${change.to}`;
+  if (had && !has) return `Removed (was ${change.from})`;
+  if (!had && !has) return NOT_SET;
+  return `${change.from} to ${change.to}`;
 }
 
 /** Journey facts shared by every template, already turned into human labels. */
@@ -401,7 +418,7 @@ export function bookingUpdatedEmail(
   const f = journeyFacts(ctx);
 
   const changeRows = ctx.changes.map(
-    (c) => [c.label, `${c.from} to ${c.to}`] as [string, string],
+    (c) => [c.label, describeChange(c)] as [string, string],
   );
 
   const body =
@@ -434,7 +451,7 @@ export function bookingUpdatedEmail(
     `There has been an update to your CHFR booking ${b.booking_reference}.`,
     '',
     'WHAT HAS CHANGED',
-    ...ctx.changes.map((c) => `${c.label}: ${c.from} to ${c.to}`),
+    ...ctx.changes.map((c) => `${c.label}: ${describeChange(c)}`),
     '',
     'YOUR JOURNEY',
     `Pickup: ${b.pickup_location}`,

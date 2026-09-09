@@ -200,6 +200,38 @@ describe('status workflow and audit log', () => {
     expect(ctx.email.outbox[0]!.content.text).toContain('£210.00');
   });
 
+  it('describes setting an empty field without saying "Not set to X"', async () => {
+    ctx.email.clear();
+    // driver_name starts empty, so this is a set, not a transition.
+    await patch({ driver_name: 'Marcus Hale' });
+
+    expect(ctx.email.outbox).toHaveLength(1);
+    const mail = ctx.email.outbox[0]!;
+    expect(mail.content.text).toContain('Driver: Set to Marcus Hale');
+    expect(mail.content.text).not.toContain('Not set to');
+    expect(mail.content.html).not.toContain('Not set to');
+  });
+
+  it('describes clearing a field, and a genuine change, in plain words', async () => {
+    await patch({ driver_name: 'Marcus Hale' });
+
+    ctx.email.clear();
+    await patch({ driver_name: 'Priya Anand' });
+    expect(ctx.email.outbox[0]!.content.text).toContain('Driver: Marcus Hale to Priya Anand');
+
+    ctx.email.clear();
+    await patch({ driver_name: '' });
+    expect(ctx.email.outbox[0]!.content.text).toContain('Driver: Removed (was Priya Anand)');
+  });
+
+  it('never says "Not set to" in the audit trail either', async () => {
+    await patch({ driver_name: 'Marcus Hale' });
+    const page = await request(ctx.app).get(`/admin/bookings/${id}`).set('Cookie', cookie);
+
+    expect(page.text).toContain('Set to Marcus Hale');
+    expect(page.text).not.toContain('Not set to');
+  });
+
   describe('the Send booked confirmation button', () => {
     const sendBooked = () =>
       request(ctx.app)

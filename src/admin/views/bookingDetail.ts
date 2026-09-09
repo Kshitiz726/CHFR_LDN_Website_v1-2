@@ -1,6 +1,6 @@
 import { esc, escMultiline } from '../../utils/html.js';
 import { formatDateTime, formatLongDate, formatTime } from '../../utils/dates.js';
-import type { BookingRow, BookingEventRow } from '../../domain/booking.js';
+import { NOT_SET, type BookingRow, type BookingEventRow } from '../../domain/booking.js';
 import type { RefOption } from '../../domain/refOptions.js';
 import type { UserRow } from '../../repositories/users.js';
 import type { NotificationLogRow, WhatsAppMessageRow } from '../../repositories/notifications.js';
@@ -298,7 +298,7 @@ ${bookedPanel(b, csrf)}
                     <div class="what">${esc(e.message ?? humanEvent(e.event_type))}</div>
                     ${
                       e.old_value !== null || e.new_value !== null
-                        ? `<div class="change">${esc(e.old_value ?? '—')} → ${esc(e.new_value ?? '—')}</div>`
+                        ? `<div class="change">${esc(describeChange(e.old_value, e.new_value))}</div>`
                         : ''
                     }
                     <div class="who">${esc(e.changed_by_label)}</div>
@@ -395,3 +395,18 @@ function bookedPanel(b: BookingRow, csrf: string): string {
   </div>
 </section>`;
 }
+
+/**
+ * The audit line for one change. A field that had no value before is simply
+ * being set, so it never reads "Not set to Marcus Hale".
+ */
+function describeChange(from: string | null, to: string | null): string {
+  const had = from && from !== NOT_SET;
+  const has = to && to !== NOT_SET;
+
+  if (!had && has) return `Set to ${to}`;
+  if (had && !has) return `Removed (was ${from})`;
+  if (!had && !has) return NOT_SET;
+  return `${from} \u2192 ${to}`;
+}
+

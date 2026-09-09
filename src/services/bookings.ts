@@ -2,7 +2,7 @@ import { config } from '../config/env.js';
 import { db } from '../db/index.js';
 import { logger } from '../utils/logger.js';
 import type { BookingRow } from '../domain/booking.js';
-import { EDITABLE_FIELDS, CUSTOMER_IMPACTING_FIELDS } from '../domain/booking.js';
+import { EDITABLE_FIELDS, CUSTOMER_IMPACTING_FIELDS, NOT_SET } from '../domain/booking.js';
 import { loadRefOptions, labelFromMap } from '../domain/refOptions.js';
 import { nextBookingReference } from '../domain/reference.js';
 import { bookingDedupeHash } from '../utils/crypto.js';
@@ -363,7 +363,7 @@ function displayValue(
   refs: Map<string, ReturnType<typeof labelFromMap> extends string ? never : never> | Map<string, any>,
   currency: string,
 ): string {
-  if (value === null || value === undefined || value === '') return 'Not set';
+  if (value === null || value === undefined || value === '') return NOT_SET;
 
   const categories: Record<string, 'status' | 'priority' | 'payment_status' | 'journey_type' | 'vehicle' | 'luggage'> = {
     status: 'status',

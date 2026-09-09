@@ -63,6 +63,14 @@ export interface BookingEventRow {
 }
 
 /** Fields staff may edit, and the label used for them in the audit trail. */
+/**
+ * Stands in for a field that has no value yet, wherever a change is described
+ * to a person. Shared so the email and the audit trail agree, and so callers
+ * can recognise "there was nothing here before" rather than pattern-matching
+ * on display text.
+ */
+export const NOT_SET = 'Not set';
+
 export const EDITABLE_FIELDS: Record<string, string> = {
   full_name: 'Customer name',
   mobile: 'Mobile',
