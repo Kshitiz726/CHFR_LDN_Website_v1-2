@@ -63,8 +63,8 @@
     return p ? p + ' uptime' : 'No data yet';
   }
 
-  // A day the server spent switched off (suspended on Render) has no checks,
-  // only off ones, and is drawn like a day with no data rather than as down.
+  // A day the server spent idle (suspended on Render) has no checks,
+  // only off ones, and is drawn yellow: idle, not down.
   function grade(day) {
     if (!day.checks) return day.off ? 'off' : 'empty';
     if (day.up === day.checks) return 'ok';
@@ -80,10 +80,10 @@
   function describe(day, interval) {
     var title = dayFmt.format(toDate(day.date));
     var off = (day.off || 0) * interval;
-    if (!day.checks) return { title: title, lines: [off ? 'Switched off' : 'No data recorded'] };
+    if (!day.checks) return { title: title, lines: [off ? 'Idle' : 'No data recorded'] };
     var down = (day.checks - day.up) * interval;
     var lines = [down === 0 ? 'No downtime' : 'Down about ' + duration(down)];
-    if (off) lines.push('Switched off for about ' + duration(off));
+    if (off) lines.push('Idle for about ' + duration(off));
     lines.push(percent(day.up, day.checks) + ' uptime from ' + day.checks + (day.checks === 1 ? ' check' : ' checks'));
     return { title: title, lines: lines };
   }
@@ -133,9 +133,9 @@
         : 'A server was added recently and has not been checked yet.';
     } else if (!running.length) {
       box.classList.add('is-down');
-      head.textContent = list.length === 1 ? labelFor(list[0]) + ' is switched off' : 'Every server is switched off';
+      head.textContent = list.length === 1 ? labelFor(list[0]) + ' is not running' : 'No server is running';
       sub.textContent = 'The last ' + (list.length === 1 ? 'check' : 'checks') + ', ' +
-        ago(Math.max.apply(null, list.map(age))) + ', found ' + (list.length === 1 ? 'it' : 'them') + ' suspended.';
+        ago(Math.max.apply(null, list.map(age))) + ', found ' + (list.length === 1 ? 'it' : 'every server') + ' idle.';
     } else if (list.length === 1) {
       box.classList.add('is-ok');
       head.textContent = UP_TEXT;
@@ -147,7 +147,7 @@
       var when = ago(Math.max.apply(null, running.map(age)));
       sub.textContent = off.length
         ? running.map(labelFor).join(' and ') + ' answered the last check, ' + when + '. ' +
-          off.map(labelFor).join(' and ') + ' is switched off.'
+          off.map(labelFor).join(' and ') + ' is idle.'
         : 'Every server answered its last check, ' + when + '.';
     }
     box.setAttribute('role', 'status');
@@ -207,7 +207,7 @@
 
     var uptime = el('span', 'st-uptime');
     if (state === 'off') {
-      uptime.textContent = 'Switched off';
+      uptime.textContent = 'Idle';
     } else {
       uptime.appendChild(el('span', 'st-long', uptimeOver(data.days)));
       uptime.appendChild(el('span', 'st-short', uptimeOver(data.days.slice(-30))));

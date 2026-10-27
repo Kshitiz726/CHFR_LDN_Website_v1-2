@@ -37,6 +37,7 @@
     .st-dot{flex:none;width:11px;height:11px;margin-top:7px;border-radius:50%;background:var(--line-strong)}
     .is-ok .st-dot{background:var(--st-ok);box-shadow:0 0 0 4px rgba(52,199,123,.16)}
     .is-down .st-dot{background:var(--st-major);box-shadow:0 0 0 4px rgba(255,74,94,.16)}
+    .is-off .st-dot{background:var(--st-partial);box-shadow:0 0 0 4px rgba(240,180,60,.18)}
 
     .st-card{margin-top:22px;border:1px solid var(--line-strong);background:var(--panel-2)}
     .st-card-head{
@@ -47,6 +48,7 @@
     .st-range{color:var(--muted);font-size:13px}
 
     .st-row{padding:20px 24px 22px}
+    .st-row + .st-row{border-top:1px solid var(--line)}
     .st-row-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;margin-bottom:12px}
     .st-name{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
     .st-name .st-dot{margin-top:0}
@@ -58,6 +60,7 @@
     .st-bar.is-ok{background:var(--st-ok)}
     .st-bar.is-partial{background:var(--st-partial)}
     .st-bar.is-major{background:var(--st-major)}
+    .st-bar.is-off{background:var(--st-partial)}
     .st-bar.is-active{filter:brightness(1.35)}
 
     .st-axis{display:flex;justify-content:space-between;margin-top:8px;color:#767676;font-size:12px}
@@ -112,8 +115,9 @@
       <div class="st"
            data-status
            data-api="https://uptime-status.kshitizrajpaudyal.workers.dev"
-           data-service="chfr"
-           data-label="Website and bookings"
+           data-service="chfr-primary chfr-secondary"
+           data-label-chfr-primary="Primary server"
+           data-label-chfr-secondary="Secondary server"
            data-up-text="All systems operational"
            aria-busy="true">
         <section class="st-banner is-unknown">
@@ -154,6 +158,6 @@
     </div>
   </footer>
 
-  <script src="status.js?v=3" defer></script>
+  <script src="status.js?v=4" defer></script>
 </body>
 </html>
