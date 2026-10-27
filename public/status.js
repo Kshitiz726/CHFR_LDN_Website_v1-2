@@ -2,8 +2,8 @@
  * Draws a status page from the uptime checker's daily tallies.
  *
  * The same file is used on ourmynd.com/status and chfrldn.com/status; each
- * page sets the checker URL, the service and its wording on the [data-status]
- * element, and styles the result with its own colours.
+ * page sets the checker URL, the services and their wording on the
+ * [data-status] element, and styles the result with its own colours.
  *
  * Wide screens get 90 daily bars and narrow ones the last 30; both sets of
  * labels are rendered and CSS shows the right one, so nothing is redrawn on
@@ -16,8 +16,8 @@
   if (!root) return;
 
   var API = root.getAttribute('data-api');
-  var SERVICE = root.getAttribute('data-service');
-  var LABEL = root.getAttribute('data-label') || 'Server';
+  // One service id, or several separated by spaces, drawn as one row each.
+  var SERVICES = root.getAttribute('data-service').trim().split(/\s+/);
   var UP_TEXT = root.getAttribute('data-up-text') || 'All systems operational';
   var REFRESH_MS = 60 * 1000;
   // Checks run every 5 minutes. Three missed runs means the checker itself is
@@ -32,6 +32,11 @@
     if (cls) node.className = cls;
     if (text != null) node.textContent = text;
     return node;
+  }
+
+  // data-label-<id> names one service, data-label names a page's only one.
+  function labelFor(data) {
+    return root.getAttribute('data-label-' + data.id) || root.getAttribute('data-label') || data.name || 'Server';
   }
 
   function toDate(iso) { return new Date(iso + 'T00:00:00Z'); }
@@ -82,33 +87,51 @@
 
   /* -- Banner --------------------------------------------------------- */
 
-  function banner(data) {
+  // A failed recent check outranks everything else; then a missing or stale
+  // one; only when every service answered recently is the page green.
+  function banner(list) {
     var box = el('section', 'st-banner');
     var dot = el('span', 'st-dot');
     dot.setAttribute('aria-hidden', 'true');
     var text = el('div', 'st-banner-text');
     var head = el('strong', 'st-banner-head');
     var sub = el('p', 'st-banner-sub');
-    var c = data && data.current;
-    var age = c ? Date.now() - Date.parse(c.at) : Infinity;
+    var now = Date.now();
+    function age(data) { return data.current ? now - Date.parse(data.current.at) : Infinity; }
+    var fresh = list.filter(function (d) { return age(d) <= STALE_MS; });
+    var down = fresh.filter(function (d) { return !d.current.ok; });
+    var checked = list.filter(function (d) { return d.current; });
 
-    if (!c) {
+    if (down.length === 1) {
+      var c = down[0].current;
+      box.classList.add('is-down');
+      head.textContent = labelFor(down[0]) + ' is not responding';
+      sub.textContent = 'The last check, ' + ago(age(down[0])) + ', ' +
+        (c.status ? 'got an error (HTTP ' + c.status + ').' : 'got no answer.');
+    } else if (down.length) {
+      box.classList.add('is-down');
+      head.textContent = down.length + ' servers are not responding';
+      sub.textContent = down.map(labelFor).join(' and ') + ' failed their last checks.';
+    } else if (!checked.length) {
       box.classList.add('is-unknown');
       head.textContent = 'No checks yet';
       sub.textContent = 'The first check runs within five minutes of monitoring starting.';
-    } else if (age > STALE_MS) {
+    } else if (fresh.length < list.length) {
       box.classList.add('is-unknown');
       head.textContent = 'Status unknown';
-      sub.textContent = 'The last check ran ' + ago(age) + ', so this may be out of date.';
-    } else if (c.ok) {
+      var oldest = Math.max.apply(null, checked.map(age));
+      sub.textContent = oldest > STALE_MS
+        ? 'The last check ran ' + ago(oldest) + ', so this may be out of date.'
+        : 'A server was added recently and has not been checked yet.';
+    } else if (list.length === 1) {
       box.classList.add('is-ok');
       head.textContent = UP_TEXT;
-      sub.textContent = LABEL + ' answered the last check, ' + ago(age) + ', in ' + (c.ms / 1000).toFixed(1) + 's.';
+      sub.textContent = labelFor(list[0]) + ' answered the last check, ' + ago(age(list[0])) + ', in ' +
+        (list[0].current.ms / 1000).toFixed(1) + 's.';
     } else {
-      box.classList.add('is-down');
-      head.textContent = LABEL + ' is not responding';
-      sub.textContent = 'The last check, ' + ago(age) + ', ' +
-        (c.status ? 'got an error (HTTP ' + c.status + ').' : 'got no answer.');
+      box.classList.add('is-ok');
+      head.textContent = UP_TEXT;
+      sub.textContent = 'Every server answered its last check, ' + ago(Math.max.apply(null, list.map(age))) + '.';
     }
     box.setAttribute('role', 'status');
     text.appendChild(head);
@@ -148,10 +171,10 @@
     bars().forEach(function (b) { b.classList.remove('is-active'); });
   }
 
-  function bars() { return Array.prototype.slice.call(root.querySelectorAll('.st-bar')); }
+  function bars(scope) { return Array.prototype.slice.call((scope || root).querySelectorAll('.st-bar')); }
 
-  function visibleBars() {
-    return bars().filter(function (b) { return b.offsetParent !== null; });
+  function visibleBars(scope) {
+    return bars(scope).filter(function (b) { return b.offsetParent !== null; });
   }
 
   function row(data) {
@@ -163,7 +186,7 @@
     var state = !data.current ? 'unknown' : data.current.ok ? 'ok' : 'down';
     name.classList.add('is-' + state);
     name.appendChild(nameDot);
-    name.appendChild(document.createTextNode(LABEL));
+    name.appendChild(document.createTextNode(labelFor(data)));
 
     var uptime = el('span', 'st-uptime');
     uptime.appendChild(el('span', 'st-long', uptimeOver(data.days)));
@@ -190,11 +213,11 @@
     list.addEventListener('pointerleave', function (e) {
       if (e.pointerType === 'mouse') hideTip();
     });
-    // Keyboard: the list is one tab stop, the arrow keys walk the days.
+    // Keyboard: each list is one tab stop, the arrow keys walk its days.
     list.addEventListener('keydown', function (e) {
-      var shown = visibleBars();
+      var shown = visibleBars(list);
       if (!shown.length) return;
-      var current = shown.indexOf(root.querySelector('.st-bar.is-active'));
+      var current = shown.indexOf(list.querySelector('.st-bar.is-active'));
       var next = current;
       if (e.key === 'ArrowLeft') next = current <= 0 ? 0 : current - 1;
       else if (e.key === 'ArrowRight') next = current < 0 ? shown.length - 1 : Math.min(shown.length - 1, current + 1);
@@ -208,8 +231,8 @@
     // Tabbing in starts on today. A mouse click also focuses the list, but the
     // bar under the pointer is already showing, so leave it alone.
     list.addEventListener('focus', function () {
-      if (root.querySelector('.st-bar.is-active')) return;
-      var shown = visibleBars();
+      if (list.querySelector('.st-bar.is-active')) return;
+      var shown = visibleBars(list);
       if (shown.length) showTip(shown[shown.length - 1]);
     });
     list.addEventListener('blur', hideTip);
@@ -227,40 +250,30 @@
     return wrap;
   }
 
-  function card(data) {
+  function card(list) {
+    var days = list[0].days;
     var box = el('section', 'st-card');
     var head = el('header', 'st-card-head');
     head.appendChild(el('h2', null, 'System status'));
-    var first = toDate(data.days[0].date), firstShort = toDate(data.days[data.days.length - 30].date);
-    var last = toDate(data.days[data.days.length - 1].date);
+    var first = toDate(days[0].date), firstShort = toDate(days[days.length - 30].date);
+    var last = toDate(days[days.length - 1].date);
     var range = el('span', 'st-range');
     range.appendChild(el('span', 'st-long', monthFmt.format(first) + ' to ' + monthFmt.format(last)));
     range.appendChild(el('span', 'st-short', monthFmt.format(firstShort) + ' to ' + monthFmt.format(last)));
     head.appendChild(range);
     box.appendChild(head);
-    box.appendChild(row(data));
+    list.forEach(function (data) { box.appendChild(row(data)); });
     return box;
-  }
-
-  function note(data) {
-    var firstDay = null;
-    data.days.some(function (d) { if (d.checks) { firstDay = d.date; return true; } return false; });
-    var text = 'Checked every ' + (data.intervalMinutes || 5) + ' minutes from outside the server, so an outage shows up even when the server itself cannot report it. Days are in UTC.';
-    if (firstDay && firstDay !== data.days[0].date) {
-      text += ' Monitoring began on ' + dayFmt.format(toDate(firstDay)) + ', so earlier days show as no data.';
-    }
-    return el('p', 'st-note', text);
   }
 
   /* -- Load ----------------------------------------------------------- */
 
-  function render(data) {
+  function render(list) {
     hideTip();
     root.textContent = '';
     root.setAttribute('aria-busy', 'false');
-    root.appendChild(banner(data));
-    root.appendChild(card(data));
-    root.appendChild(note(data));
+    root.appendChild(banner(list));
+    root.appendChild(card(list));
   }
 
   function fail() {
@@ -278,9 +291,13 @@
     root.appendChild(box);
   }
 
+  // One request per service, drawn together once all have answered.
   function load() {
-    fetch(API.replace(/\/+$/, '') + '/api/status?service=' + encodeURIComponent(SERVICE), { cache: 'no-store' })
-      .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    var base = API.replace(/\/+$/, '') + '/api/status?service=';
+    Promise.all(SERVICES.map(function (id) {
+      return fetch(base + encodeURIComponent(id), { cache: 'no-store' })
+        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); });
+    }))
       .then(render)
       .catch(fail);
   }
