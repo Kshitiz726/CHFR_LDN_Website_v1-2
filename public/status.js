@@ -63,32 +63,38 @@
     return p ? p + ' uptime' : 'No data yet';
   }
 
+  // A day the server spent switched off (suspended on Render) has no checks,
+  // only off ones, and is drawn like a day with no data rather than as down.
   function grade(day) {
-    if (!day.checks) return 'empty';
+    if (!day.checks) return day.off ? 'off' : 'empty';
     if (day.up === day.checks) return 'ok';
     return day.up / day.checks >= 0.9 ? 'partial' : 'major';
   }
 
+  function duration(minutes) {
+    if (minutes < 60) return minutes + ' minutes';
+    var h = Math.floor(minutes / 60), m = minutes % 60;
+    return h + (h === 1 ? ' hour' : ' hours') + (m ? ' ' + m + ' min' : '');
+  }
+
   function describe(day, interval) {
-    if (!day.checks) return { title: dayFmt.format(toDate(day.date)), lines: ['No data recorded'] };
+    var title = dayFmt.format(toDate(day.date));
+    var off = (day.off || 0) * interval;
+    if (!day.checks) return { title: title, lines: [off ? 'Switched off' : 'No data recorded'] };
     var down = (day.checks - day.up) * interval;
-    var line;
-    if (down === 0) line = 'No downtime';
-    else if (down < 60) line = 'Down about ' + down + ' minutes';
-    else {
-      var h = Math.floor(down / 60), m = down % 60;
-      line = 'Down about ' + h + (h === 1 ? ' hour' : ' hours') + (m ? ' ' + m + ' min' : '');
-    }
-    return {
-      title: dayFmt.format(toDate(day.date)),
-      lines: [line, percent(day.up, day.checks) + ' uptime from ' + day.checks + (day.checks === 1 ? ' check' : ' checks')],
-    };
+    var lines = [down === 0 ? 'No downtime' : 'Down about ' + duration(down)];
+    if (off) lines.push('Switched off for about ' + duration(off));
+    lines.push(percent(day.up, day.checks) + ' uptime from ' + day.checks + (day.checks === 1 ? ' check' : ' checks'));
+    return { title: title, lines: lines };
   }
 
   /* -- Banner --------------------------------------------------------- */
 
   // A failed recent check outranks everything else; then a missing or stale
-  // one; only when every service answered recently is the page green.
+  // one. A server that is switched off (suspended on Render) is not a
+  // failure: with a primary and a secondary only one runs at a time, so the
+  // page is green while every server is either answering or switched off,
+  // and at least one is answering.
   function banner(list) {
     var box = el('section', 'st-banner');
     var dot = el('span', 'st-dot');
@@ -99,7 +105,9 @@
     var now = Date.now();
     function age(data) { return data.current ? now - Date.parse(data.current.at) : Infinity; }
     var fresh = list.filter(function (d) { return age(d) <= STALE_MS; });
-    var down = fresh.filter(function (d) { return !d.current.ok; });
+    var down = fresh.filter(function (d) { return !d.current.ok && !d.current.suspended; });
+    var off = fresh.filter(function (d) { return d.current.suspended; });
+    var running = fresh.filter(function (d) { return d.current.ok; });
     var checked = list.filter(function (d) { return d.current; });
 
     if (down.length === 1) {
@@ -123,6 +131,11 @@
       sub.textContent = oldest > STALE_MS
         ? 'The last check ran ' + ago(oldest) + ', so this may be out of date.'
         : 'A server was added recently and has not been checked yet.';
+    } else if (!running.length) {
+      box.classList.add('is-down');
+      head.textContent = list.length === 1 ? labelFor(list[0]) + ' is switched off' : 'Every server is switched off';
+      sub.textContent = 'The last ' + (list.length === 1 ? 'check' : 'checks') + ', ' +
+        ago(Math.max.apply(null, list.map(age))) + ', found ' + (list.length === 1 ? 'it' : 'them') + ' suspended.';
     } else if (list.length === 1) {
       box.classList.add('is-ok');
       head.textContent = UP_TEXT;
@@ -131,7 +144,11 @@
     } else {
       box.classList.add('is-ok');
       head.textContent = UP_TEXT;
-      sub.textContent = 'Every server answered its last check, ' + ago(Math.max.apply(null, list.map(age))) + '.';
+      var when = ago(Math.max.apply(null, running.map(age)));
+      sub.textContent = off.length
+        ? running.map(labelFor).join(' and ') + ' answered the last check, ' + when + '. ' +
+          off.map(labelFor).join(' and ') + ' is switched off.'
+        : 'Every server answered its last check, ' + when + '.';
     }
     box.setAttribute('role', 'status');
     text.appendChild(head);
@@ -183,14 +200,18 @@
     var name = el('span', 'st-name');
     var nameDot = el('span', 'st-dot');
     nameDot.setAttribute('aria-hidden', 'true');
-    var state = !data.current ? 'unknown' : data.current.ok ? 'ok' : 'down';
+    var state = !data.current ? 'unknown' : data.current.ok ? 'ok' : data.current.suspended ? 'off' : 'down';
     name.classList.add('is-' + state);
     name.appendChild(nameDot);
     name.appendChild(document.createTextNode(labelFor(data)));
 
     var uptime = el('span', 'st-uptime');
-    uptime.appendChild(el('span', 'st-long', uptimeOver(data.days)));
-    uptime.appendChild(el('span', 'st-short', uptimeOver(data.days.slice(-30))));
+    if (state === 'off') {
+      uptime.textContent = 'Switched off';
+    } else {
+      uptime.appendChild(el('span', 'st-long', uptimeOver(data.days)));
+      uptime.appendChild(el('span', 'st-short', uptimeOver(data.days.slice(-30))));
+    }
     head.appendChild(name);
     head.appendChild(uptime);
 
