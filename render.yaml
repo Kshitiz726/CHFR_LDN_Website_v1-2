@@ -41,6 +41,11 @@ services:
       - key: TRUST_PROXY
         value: 'true'
 
+      # KEEPALIVE=true stops the free instance sleeping (src/services/keepalive.ts).
+      # Deliberately NOT declared here: a value in this file would be synced onto
+      # every copy of the service. Set it per service in the dashboard, and only
+      # on a service that has its Render workspace's free hours to itself.
+
       # Generated once by Render and then kept.
       - key: ADMIN_SESSION_SECRET
         generateValue: true

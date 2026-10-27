@@ -7,6 +7,7 @@ import { bootstrapAdminFromEnv } from './auth/bootstrap.js';
 import { purgeExpiredSessions } from './auth/session.js';
 import { purgeOldRateLimits } from './http/middleware/rateLimit.js';
 import { createApp } from './http/app.js';
+import { startKeepAlive } from './services/keepalive.js';
 
 /**
  * Application entry point. Migrations run at boot so a Render deploy is a
@@ -41,9 +42,13 @@ async function main(): Promise<void> {
   );
   housekeeping.unref();
 
+  // Off unless KEEPALIVE=true; see the file for what it costs.
+  const keepAlive = startKeepAlive();
+
   const shutdown = (signal: string) => {
     logger.info({ signal }, 'Shutting down');
     clearInterval(housekeeping);
+    if (keepAlive) clearInterval(keepAlive);
     server.close(async () => {
       await closeDatabase().catch(() => undefined);
       process.exit(0);

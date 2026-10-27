@@ -144,6 +144,12 @@ const schema = z.object({
   BUSINESS_TIMEZONE: z.string().default('Europe/London'),
   CUSTOMER_UPDATE_EMAILS_ENABLED: bool(true),
 
+  // Hosting. Render injects RENDER_EXTERNAL_URL for every web service.
+  // KEEPALIVE pings it so a free instance never sleeps. Read
+  // services/keepalive.ts before turning it on: it is not free.
+  RENDER_EXTERNAL_URL: optStr,
+  KEEPALIVE: bool(false),
+
   // First-run / recovery account, applied at boot. Intended for hosting plans
   // with no shell access. Remove ADMIN_BOOTSTRAP_PASSWORD once it has applied.
   ADMIN_BOOTSTRAP_EMAIL: optStr,
