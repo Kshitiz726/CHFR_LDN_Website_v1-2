@@ -4,12 +4,15 @@ import { config } from '../../config/env.js';
 
 /**
  * Security headers. The CSP is written for the actual page: Google Fonts for
- * the marketing site, a Turnstile widget when configured, and nothing else.
+ * the marketing site, a Turnstile widget when configured, the uptime checker
+ * the status page reads from, and nothing else.
  */
 export function securityHeaders() {
   const scriptSrc = ["'self'"];
   const frameSrc = ["'none'"];
-  const connectSrc = ["'self'"];
+  // /status reads its uptime history from the checker on Cloudflare
+  // (OurMynd-Website/status-worker).
+  const connectSrc = ["'self'", 'https://uptime-status.kshitizrajpaudyal.workers.dev'];
 
   if (config.TURNSTILE_SITE_KEY) {
     scriptSrc.push('https://challenges.cloudflare.com');
